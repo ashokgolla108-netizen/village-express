@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Village Express - Shop</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-white">
+    <header class="sticky top-0 bg-white z-50 p-4 border-b">
+        <div class="relative">
+            <div class="flex items-center bg-gray-100 rounded-xl px-4 py-3">
+                <i class="fa-solid fa-search text-gray-400 mr-3"></i>
+                <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Search for products..." class="bg-transparent w-full outline-none text-sm font-medium">
+            </div>
+            <div id="search-results" class="absolute left-0 right-0 bg-white shadow-2xl rounded-b-2xl mt-1 hidden z-50 border max-h-60 overflow-y-auto"></div>
+        </div>
+    </header>
+
+    <main class="p-4 pb-32">
+        <h3 class="font-black text-lg text-slate-800 mb-4">Categories</h3>
+        <div id="cat-grid" class="grid grid-cols-4 gap-3 mb-8"></div>
+        <div id="product-view" class="hidden">
+            <h3 id="cat-title" class="font-black text-xs mb-4 uppercase border-b pb-2 text-slate-400"></h3>
+            <div id="items-grid" class="grid grid-cols-2 gap-4"></div>
+        </div>
+    </main>
+
+    <div id="cart-bar" class="fixed bottom-0 left-0 right-0 p-4 bg-white border-t hidden z-40">
+        <button onclick="showCheckout()" class="w-full bg-green-600 text-white flex justify-between p-4 rounded-2xl font-black shadow-lg">
+            <span id="cart-total-bar">₹0</span><span>VIEW CART <i class="fa-solid fa-chevron-right ml-1"></i></span>
+        </button>
+    </div>
+
+    <div id="checkout-view" class="fixed inset-0 bg-white z-[60] hidden overflow-y-auto p-6">
+        <button onclick="hideCheckout()" class="mb-6 font-bold text-slate-400"><i class="fa-solid fa-arrow-left"></i> BACK</button>
+        
+        <h3 class="font-black text-xs uppercase mb-3 text-slate-400">1. Delivery Address</h3>
+        <div class="bg-slate-50 p-4 rounded-2xl mb-8 border border-slate-100">
+            <div id="address-status" class="text-[10px] font-bold text-red-500 mb-2 uppercase">Location Required*</div>
+            <textarea id="manual-address" placeholder="House No / Landmark..." class="w-full bg-transparent text-sm font-bold outline-none mb-3" rows="2"></textarea>
+            <button onclick="getLocation()" id="loc-btn" class="w-full bg-blue-100 text-blue-700 py-3 rounded-xl text-xs font-black uppercase flex items-center justify-center">
+                <i class="fa-solid fa-location-crosshairs mr-2"></i> Use Live Location
+            </button>
+        </div>
+
+        <h3 class="font-black text-xs uppercase mb-3 text-slate-400">2. Review Items</h3>
+        <div id="checkout-items" class="space-y-4 mb-8"></div>
+        
+        <div class="bg-slate-50 p-6 rounded-3xl mb-8 font-bold text-sm">
+            <div class="flex justify-between text-gray-500"><span>Items Total</span><span id="bill-sub">₹0</span></div>
+            <div class="flex justify-between text-gray-500"><span>Delivery Fee</span><span>₹15</span></div>
+            <div class="flex justify-between text-xl font-black text-slate-800 pt-2 border-t border-dashed"><span>Grand Total</span><span id="bill-grand">₹0</span></div>
+        </div>
+
+        <h3 class="font-black text-xs uppercase mb-3 text-slate-400">3. Payment</h3>
+        <div class="space-y-3 mb-10">
+            <label class="flex items-center p-4 border-2 rounded-2xl has-[:checked]:border-green-600 has-[:checked]:bg-green-50 transition-all">
+                <input type="radio" name="pay" value="UPI" checked class="hidden">
+                <i class="fa-solid fa-mobile-screen mr-3 text-green-600"></i><span class="font-bold text-sm">UPI (g.ashok14@ibl)</span>
+            </label>
+            <label class="flex items-center p-4 border-2 rounded-2xl has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50 transition-all">
+                <input type="radio" name="pay" value="CASH" class="hidden">
+                <i class="fa-solid fa-wallet mr-3 text-blue-600"></i><span class="font-bold text-sm">Cash on Delivery</span>
+            </label>
+        </div>
+        <button onclick="placeOrder()" class="w-full bg-slate-800 text-white font-black py-5 rounded-[2rem] shadow-xl">CONFIRM ORDER</button>
+    </div>
+
+    <script>
+        const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", authDomain: "village-quick-commerce-e27f6.firebaseapp.com", projectId: "village-quick-commerce-e27f6" };
+        firebase.initializeApp(config);
+        const db = firebase.firestore();
+        let cart = {}; let allItems = []; let userLoc = null;
+
+        const cats = ["Vegetables & Fruits", "Dairy, Bread & Eggs", "Atta, Rice & Dal", "Snacks & Munchies", "Drinks & Juices", "Bakery & Biscuits", "Chicken, Meat & Fish", "Personal Care"];
+
+        window.onload = () => {
+            const grid = document.getElementById('cat-grid');
+            cats.forEach(c => grid.innerHTML += `<div onclick="loadProducts('${c}')" class="text-center"><div class="bg-gray-100 aspect-square rounded-2xl mb-1 flex items-center justify-center text-slate-300 font-bold uppercase text-lg">${c.charAt(0)}</div><p class="text-[9px] font-black">${c.split(' ')[0]}</p></div>`);
+            db.collection("products").onSnapshot(snap => allItems = snap.docs.map(doc => ({id: doc.id, ...doc.data()})));
+        };
+
+        function getLocation() {
+            const btn = document.getElementById('loc-btn');
+            btn.innerHTML = "Fetching...";
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(position => {
+                    userLoc = { lat: position.coords.latitude, lng: position.coords.longitude };
+                    document.getElementById('address-status').innerText = "Location Captured ✅";
+                    document.getElementById('address-status').classList.replace('text-red-500', 'text-green-600');
+                    btn.innerHTML = "Location Updated";
+                }, () => alert("Please enable GPS/Location access"));
+            }
+        }
+
+        function placeOrder() {
+            const addr = document.getElementById('manual-address').value;
+            const method = document.querySelector('input[name="pay"]:checked').value;
+            
+            if(!addr || !userLoc) return alert("Please get live location & type house details");
+
+            const orderId = "VE-" + Math.floor(Math.random() * 100000);
+            const orderData = {
+                orderId: orderId,
+                items: cart,
+                total: window.finalTotal,
+                address: addr,
+                location: userLoc, // This is for the Rider
+                payment: method,
+                status: "Pending",
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            db.collection("orders").add(orderData).then(() => {
+                if(method === "UPI") {
+                    window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${window.finalTotal}&cu=INR&tn=${orderId}`;
+                } else {
+                    alert("Order Placed Successfully! ID: " + orderId);
+                    cart = {}; updateCart(); hideCheckout();
+                }
+            });
+        }
+
+        // Functions for products and cart (Same as before)
+        function loadProducts(cat) {
+            document.getElementById('product-view').classList.remove('hidden');
+            document.getElementById('cat-title').innerText = cat;
+            const grid = document.getElementById('items-grid');
+            db.collection("products").where("category", "==", cat).onSnapshot(snap => {
+                grid.innerHTML = "";
+                snap.forEach(doc => {
+                    const p = doc.data(); const id = doc.id;
+                    grid.innerHTML += `<div class="bg-white border rounded-2xl p-3 ${!p.inStock ? 'opacity-40' : ''}">
+                        <p class="font-bold text-xs">${p.name}</p><p class="text-[10px] text-slate-400 mb-2 font-bold">₹${p.price}</p>
+                        ${p.inStock ? `<button onclick="addToCart('${id}','${p.name}',${p.price})" class="w-full border border-green-600 text-green-700 py-1 rounded-lg text-[10px] font-black uppercase">Add</button>` : `<p class="text-center font-black text-red-500 text-[8px]">OUT OF STOCK</p>`}
+                    </div>`;
+                });
+            });
+        }
+
+        function addToCart(id, name, price) {
+            cart[id] = cart[id] ? { ...cart[id], qty: cart[id].qty + 1 } : { name, price, qty: 1 };
+            updateCart();
+        }
+
+        function updateCart() {
+            let sub = 0; Object.values(cart).forEach(i => sub += i.price * i.qty);
+            document.getElementById('cart-bar').classList.toggle('hidden', sub === 0);
+            document.getElementById('cart-total-bar').innerText = `₹${sub} Total`;
+            window.finalTotal = sub + 15; window.subtotal = sub;
+        }
+
+        function changeQty(id, delta) {
+            if(cart[id]) { cart[id].qty += delta; if(cart[id].qty <= 0) delete cart[id]; updateCart(); showCheckout(); }
+        }
+
+        function showCheckout() {
+            const list = document.getElementById('checkout-items'); list.innerHTML = "";
+            if(Object.keys(cart).length === 0) return hideCheckout();
+            document.getElementById('checkout-view').classList.remove('hidden');
+            for(let id in cart) {
+                const i = cart[id];
+                list.innerHTML += `<div class="flex justify-between items-center"><div><p class="font-black text-sm">${i.name}</p><p class="text-xs text-green-600 font-bold">₹${i.price}</p></div>
+                    <div class="flex items-center bg-gray-100 rounded-xl p-1"><button onclick="changeQty('${id}',-1)" class="w-7 h-7 bg-white rounded-lg flex items-center justify-center"><i class="fa-solid fa-minus text-[8px]"></i></button>
+                    <span class="px-4 font-black text-sm">${i.qty}</span><button onclick="changeQty('${id}',1)" class="w-7 h-7 bg-white rounded-lg flex items-center justify-center"><i class="fa-solid fa-plus text-[8px]"></i></button></div></div>`;
+            }
+            document.getElementById('bill-sub').innerText = `₹${window.subtotal}`;
+            document.getElementById('bill-grand').innerText = `₹${window.finalTotal}`;
+        }
+
+        function handleSearch(val) {
+            const results = document.getElementById('search-results');
+            if(val.length < 1) return results.classList.add('hidden');
+            const filtered = allItems.filter(i => i.name.toLowerCase().includes(val.toLowerCase()));
+            results.innerHTML = "";
+            if(filtered.length > 0) {
+                results.classList.remove('hidden');
+                filtered.forEach(i => results.innerHTML += `<div class="p-4 border-b flex justify-between" onclick="addToCart('${i.id}','${i.name}',${i.price})"><span class="font-bold">${i.name}</span><span class="text-green-600 font-bold">₹${i.price}</span></div>`);
+            } else results.classList.add('hidden');
+        }
+        function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
+    </script>
+</body>
+</html>

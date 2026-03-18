@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VE Admin - Organized</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-slate-50 min-h-screen pb-20">
+    <div id="admin-login" class="flex flex-col items-center pt-10">
+        <div class="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center mb-4 shadow-lg text-white text-2xl font-black italic">VE</div>
+        <div class="bg-white w-full max-w-sm p-8 rounded-3xl shadow-xl text-center">
+            <h2 class="text-lg font-bold mb-4">Admin Login</h2>
+            <input type="text" id="a-user" placeholder="User" class="w-full p-3 bg-gray-50 border rounded-xl mb-3 outline-none font-bold">
+            <input type="password" id="a-pass" placeholder="Pass" class="w-full p-3 bg-gray-50 border rounded-xl mb-5 outline-none font-bold">
+            <button onclick="checkAdmin()" class="w-full bg-slate-800 text-white font-bold py-3 rounded-xl">Login</button>
+        </div>
+    </div>
+
+    <div id="admin-panel" class="hidden">
+        <header class="bg-slate-800 text-white p-5 rounded-b-[2rem] shadow-md mb-6">
+            <h1 class="text-xl font-black italic uppercase">Village Express</h1>
+            <p class="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Categorized Manager</p>
+        </header>
+
+        <main class="px-4 max-w-xl mx-auto">
+            <div class="bg-white p-5 rounded-3xl shadow-sm mb-8 border border-slate-100">
+                <h3 class="font-black text-slate-800 mb-3 text-sm">ADD NEW ITEM</h3>
+                <select id="p-cat" class="w-full p-3 bg-gray-50 border rounded-xl mb-2 outline-none font-bold text-gray-700 text-sm">
+                    <option>Vegetables & Fruits</option>
+                    <option>Dairy, Bread & Eggs</option>
+                    <option>Atta, Rice & Dal</option>
+                    <option>Snacks & Munchies</option>
+                    <option>Drinks & Juices</option>
+                    <option>Bakery & Biscuits</option>
+                    <option>Chicken, Meat & Fish</option>
+                    <option>Personal Care</option>
+                </select>
+                <input type="text" id="p-name" placeholder="Item Name" class="w-full p-3 bg-gray-50 border rounded-xl mb-2 outline-none font-bold text-sm">
+                <input type="number" id="p-price" placeholder="Price (₹)" class="w-full p-3 bg-gray-50 border rounded-xl mb-4 outline-none font-bold text-sm">
+                <button onclick="addItem()" id="add-btn" class="w-full bg-green-600 text-white font-bold py-3 rounded-xl shadow-md uppercase text-xs">Upload Product</button>
+            </div>
+
+            <div id="categorized-stock" class="space-y-8">
+                </div>
+        </main>
+    </div>
+
+    <script>
+        const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", authDomain: "village-quick-commerce-e27f6.firebaseapp.com", projectId: "village-quick-commerce-e27f6" };
+        firebase.initializeApp(config);
+        const db = firebase.firestore();
+
+        const CATEGORIES = [
+            "Vegetables & Fruits", "Dairy, Bread & Eggs", "Atta, Rice & Dal", 
+            "Snacks & Munchies", "Drinks & Juices", "Bakery & Biscuits", 
+            "Chicken, Meat & Fish", "Personal Care"
+        ];
+
+        function checkAdmin() {
+            if(document.getElementById('a-user').value === "admin" && document.getElementById('a-pass').value === "1234") {
+                document.getElementById('admin-login').classList.add('hidden');
+                document.getElementById('admin-panel').classList.remove('hidden');
+                loadInventory();
+            } else { alert("Error"); }
+        }
+
+        function addItem() {
+            const name = document.getElementById('p-name').value;
+            const price = document.getElementById('p-price').value;
+            const cat = document.getElementById('p-cat').value;
+            if(!name || !price) return alert("Fill all");
+
+            db.collection("products").add({
+                name: name, price: Number(price), category: cat, inStock: true
+            }).then(() => {
+                document.getElementById('p-name').value = "";
+                document.getElementById('p-price').value = "";
+                alert("Success!");
+            });
+        }
+
+        function loadInventory() {
+            db.collection("products").onSnapshot(snap => {
+                const mainContainer = document.getElementById('categorized-stock');
+                mainContainer.innerHTML = "";
+                
+                const allData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                CATEGORIES.forEach(catName => {
+                    const catItems = allData.filter(item => item.category === catName);
+                    
+                    if(catItems.length > 0) {
+                        let sectionHtml = `
+                            <div class="category-group">
+                                <h2 class="flex items-center text-slate-400 font-black text-[10px] uppercase tracking-widest mb-3 px-2">
+                                    <span class="bg-slate-200 h-[1px] flex-grow mr-3"></span>
+                                    ${catName}
+                                    <span class="bg-slate-200 h-[1px] flex-grow ml-3"></span>
+                                </h2>
+                                <div class="space-y-3">
+                        `;
+
+                        catItems.forEach(p => {
+                            sectionHtml += `
+                                <div class="bg-white p-4 rounded-2xl shadow-sm border ${p.inStock !== false ? 'border-gray-100' : 'border-red-100 bg-red-50'}">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <p class="font-bold text-slate-800 text-sm">${p.name}</p>
+                                        <button onclick="deleteItem('${p.id}')" class="text-red-300 hover:text-red-500 transition-colors"><i class="fa-solid fa-trash-can text-xs"></i></button>
+                                    </div>
+                                    <div class="flex items-center gap-3">
+                                        <div class="flex items-center bg-gray-50 border rounded-lg px-2 w-24">
+                                            <span class="text-[10px] font-bold text-gray-400 mr-1">₹</span>
+                                            <input type="number" onchange="updatePrice('${p.id}', this.value)" value="${p.price}" class="w-full p-1 bg-transparent font-bold text-green-700 text-sm outline-none">
+                                        </div>
+                                        <button onclick="toggleStock('${p.id}', ${p.inStock})" class="flex-grow py-2 rounded-lg font-black text-[9px] uppercase tracking-wider transition-all ${p.inStock !== false ? 'bg-slate-100 text-slate-500' : 'bg-red-500 text-white shadow-md shadow-red-100'}">
+                                            ${p.inStock !== false ? 'Mark Out of Stock' : 'Mark In Stock'}
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        });
+
+                        sectionHtml += `</div></div>`;
+                        mainContainer.innerHTML += sectionHtml;
+                    }
+                });
+            });
+        }
+
+        function updatePrice(id, val) { db.collection("products").doc(id).update({ price: Number(val) }); }
+        function toggleStock(id, status) { db.collection("products").doc(id).update({ inStock: status === false }); }
+        function deleteItem(id) { if(confirm("Delete?")) db.collection("products").doc(id).delete(); }
+    </script>
+</body>
+</html>
