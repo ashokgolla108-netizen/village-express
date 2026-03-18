@@ -1,60 +1,146 @@
-<!-- USER APP -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Village Express</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Village Express</title>
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
 
+    <style>
+        .auth-screen { display: none; position: fixed; inset: 0; background: white; z-index: 2000; padding: 24px; }
+        .auth-screen.active { display: block; }
+        input, textarea { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; }
+        .btn-primary { background: #15803d; color: white; padding: 14px; border-radius: 12px; width: 100%; }
+    </style>
 </head>
-<body class="bg-gray-50">
 
-<div class="p-4">
-    <h1 class="text-xl font-black mb-4">Village Express</h1>
-    <div id="items"></div>
+<body class="bg-gray-50 pb-32">
+
+<!-- AUTH -->
+<div id="auth-overlay" class="auth-screen">
+    <div id="login-view">
+        <h1 class="text-2xl font-bold mb-4">Village Express</h1>
+        <input type="tel" id="login-phone" placeholder="Mobile">
+        <input type="password" id="login-pass" placeholder="Password">
+        <button onclick="handleLogin()" class="btn-primary mt-2">Login</button>
+    </div>
 </div>
 
-<div class="fixed bottom-4 left-4 right-4">
-    <button onclick="placeOrder()" class="bg-green-700 text-white w-full p-4 rounded-xl">Place Order</button>
+<!-- PRODUCTS -->
+<div class="p-4">
+    <h1 class="text-xl font-bold mb-4">Village Express</h1>
+    <div id="items-grid" class="grid grid-cols-2 gap-3"></div>
+</div>
+
+<!-- CART -->
+<div id="cart-bar" class="fixed bottom-4 left-4 right-4 hidden">
+    <button onclick="openCheckout()" class="bg-green-700 text-white w-full p-4 rounded-xl">
+        Checkout
+    </button>
+</div>
+
+<!-- CHECKOUT -->
+<div id="checkout-view" class="hidden fixed inset-0 bg-white p-4">
+    <h2 class="font-bold mb-4">Checkout</h2>
+
+    <input id="order-name" placeholder="Name">
+    <input id="order-phone" placeholder="Phone">
+    <input id="order-building" placeholder="Building">
+    <textarea id="order-address" placeholder="Address"></textarea>
+
+    <button onclick="placeOrder()" class="btn-primary mt-3">Confirm Order</button>
 </div>
 
 <script>
-const config = { apiKey: "AIza...", projectId: "village-quick-commerce-e27f6" };
+const config = { apiKey: "AIzaSyAVu8...", projectId: "village-quick-commerce-e27f6" };
 firebase.initializeApp(config);
 const db = firebase.firestore();
 
-let cart = {};
-let currentUser = { name: "Test User", phone: "9999999999" };
+let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
+let allProducts = [], cart = {};
 
+// ✅ RIDERS
 const riders = [
   { name: "Ashok", phone: "8328016917" },
   { name: "Ravi", phone: "9000000001" },
   { name: "Naresh", phone: "9000000002" }
 ];
 
-db.collection("products").onSnapshot(snap => {
-    const el = document.getElementById("items");
-    el.innerHTML = "";
-    snap.forEach(doc => {
-        const p = doc.data();
-        el.innerHTML += `
-        <div class="bg-white p-3 mb-2 rounded">
-            <p>${p.name} - ₹${p.price}</p>
-            <button onclick="add('${doc.id}', ${p.price}, '${p.name}')" class="bg-green-600 text-white px-3 py-1">Add</button>
-        </div>`;
-    });
-});
+// INIT
+window.onload = () => {
+    if(!currentUser){
+        document.getElementById('auth-overlay').classList.add('active');
+    } else {
+        initApp();
+    }
+};
 
-function add(id, price, name){
-    if(!cart[id]) cart[id] = {name, price, qty:0};
-    cart[id].qty++;
+async function handleLogin(){
+    const p = document.getElementById('login-phone').value;
+    const pw = document.getElementById('login-pass').value;
+
+    const s = await db.collection("users")
+        .where("phone","==",p)
+        .where("pass","==",pw)
+        .get();
+
+    if(s.empty) return alert("Invalid");
+
+    currentUser = s.docs[0].data();
+    localStorage.setItem('user_session', JSON.stringify(currentUser));
+    location.reload();
 }
 
+function initApp(){
+    document.getElementById('auth-overlay').classList.remove('active');
+
+    db.collection("products").onSnapshot(snap => {
+        allProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderItems();
+    });
+}
+
+// PRODUCTS
+function renderItems(){
+    const grid = document.getElementById('items-grid');
+    grid.innerHTML = "";
+
+    allProducts.forEach(p => {
+        grid.innerHTML += `
+        <div class="bg-white p-3 rounded">
+            <p>${p.name}</p>
+            <p>₹${p.price}</p>
+            <button onclick="addToCart('${p.id}')" class="bg-green-600 text-white px-2 py-1 mt-1">Add</button>
+        </div>`;
+    });
+}
+
+function addToCart(id){
+    const p = allProducts.find(x => x.id === id);
+
+    if(!cart[id]) cart[id] = {name:p.name, price:p.price, qty:0};
+    cart[id].qty++;
+
+    document.getElementById('cart-bar').classList.remove('hidden');
+}
+
+// CHECKOUT
+function openCheckout(){
+    document.getElementById('checkout-view').classList.remove('hidden');
+    document.getElementById('order-name').value = currentUser.name;
+    document.getElementById('order-phone').value = currentUser.phone;
+}
+
+// ✅ UPDATED ORDER FUNCTION
 async function placeOrder(){
+    const b = document.getElementById('order-building').value;
+    const a = document.getElementById('order-address').value;
+
+    if(!b || !a) return alert("Address Required");
+
     let sub = 0;
     Object.values(cart).forEach(i => sub += i.price * i.qty);
 
@@ -62,22 +148,36 @@ async function placeOrder(){
 
     const order = {
         orderId: "ORD" + Math.floor(100000 + Math.random()*900000),
-        customer: currentUser,
+
+        customer: {
+            name: document.getElementById('order-name').value,
+            phone: document.getElementById('order-phone').value,
+            user_phone: currentUser.phone
+        },
+
         rider: rider,
+
+        address: `${b}, ${a}`,
+        gps: "Not Provided",
+
         items: cart,
         total: sub + 5,
         deliveryFee: 5,
+
         payment: "COD",
-        address: "Test Address",
-        gps: "Not Provided",
         status: "PENDING",
+
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
     };
 
     await db.collection("orders").add(order);
-    alert("Order Placed");
+
+    alert("Order Placed!");
     cart = {};
+    document.getElementById('checkout-view').classList.add('hidden');
+    document.getElementById('cart-bar').classList.add('hidden');
 }
 </script>
+
 </body>
 </html>
