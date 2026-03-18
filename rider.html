@@ -11,71 +11,136 @@
     <style>
         .dark-navy { background-color: #1a1f2c; }
         .tab-active { border-bottom: 3px solid #10b981; color: #10b981; }
-        .card-shadow { box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .auth-screen { display: none; position: fixed; inset: 0; background: white; z-index: 2000; padding: 24px; overflow-y: auto; }
+        .auth-screen.active { display: block !important; }
+        input { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; background: #f8fafc; outline: none; margin-bottom: 10px; font-weight: 600; }
+        .btn-primary { background: #1a1f2c; color: white; font-weight: 900; text-transform: uppercase; padding: 16px; border-radius: 16px; width: 100%; }
     </style>
 </head>
 <body class="bg-gray-50 pb-20">
 
-    <header class="dark-navy p-6 text-white rounded-b-[40px] shadow-lg">
-        <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-black italic">Rider Portal</h1>
-                <p class="text-xs text-gray-400 uppercase font-bold tracking-widest">Golla Ashok</p>
-            </div>
-            <div class="bg-white/10 p-3 rounded-2xl">
-                <i class="fa-solid fa-bell-slash text-gray-400"></i>
+    <div id="auth-overlay" class="auth-screen">
+        <div id="login-view" class="space-y-6 pt-10 text-center">
+            <h1 class="text-4xl font-black italic text-slate-800">Rider Login</h1>
+            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Village Express Logistics</p>
+            <input type="tel" id="login-phone" placeholder="Rider Mobile Number">
+            <input type="password" id="login-pass" placeholder="Password">
+            <button onclick="handleLogin()" class="btn-primary">Enter Portal</button>
+            <div class="flex justify-between px-2 mt-4">
+                <button onclick="showAuth('register')" class="text-[10px] font-black text-blue-600 uppercase">Register Rider</button>
+                <button onclick="showAuth('forgot')" class="text-[10px] font-black text-red-500 uppercase">Forgot Password?</button>
             </div>
         </div>
 
-        <div class="grid grid-cols-2 gap-4">
-            <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
-                <p class="text-[10px] font-bold text-gray-400 uppercase">Today's Earnings</p>
-                <p id="total-earnings" class="text-2xl font-black text-green-400">₹0</p>
-            </div>
-            <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
-                <p class="text-[10px] font-bold text-gray-400 uppercase">Completed</p>
-                <p id="total-orders" class="text-2xl font-black">0 Orders</p>
-            </div>
+        <div id="register-view" class="hidden space-y-4">
+            <h2 class="text-2xl font-black italic">Rider Registration</h2>
+            <input type="text" id="reg-name" placeholder="Full Name">
+            <input type="tel" id="reg-phone" placeholder="Mobile Number">
+            <input type="date" id="reg-dob">
+            <input type="password" id="reg-pass" placeholder="Create Password">
+            <button onclick="handleRegister()" class="btn-primary">Create Rider Account</button>
+            <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 uppercase mt-4">Back to Login</button>
         </div>
-    </header>
 
-    <div class="flex px-6 mt-6 border-b bg-white sticky top-0 z-10">
-        <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs uppercase tab-active">Active</button>
-        <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs uppercase text-gray-400">History</button>
+        <div id="forgot-view" class="hidden space-y-4">
+            <h2 class="text-2xl font-black italic text-red-600">Account Recovery</h2>
+            <input type="tel" id="f-phone" placeholder="Registered Mobile">
+            <input type="text" id="f-name" placeholder="Full Name">
+            <input type="date" id="f-dob">
+            <button onclick="handleForgot()" class="btn-primary">Recover Password</button>
+            <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 uppercase mt-4">Back</button>
+        </div>
     </div>
 
-    <main id="rider-list" class="p-4 space-y-4"></main>
+    <div id="main-app" class="hidden">
+        <header class="dark-navy p-6 text-white rounded-b-[40px] shadow-lg">
+            <div class="flex justify-between items-center mb-6">
+                <div>
+                    <h1 class="text-2xl font-black italic">Rider Portal</h1>
+                    <p id="rider-display-name" class="text-xs text-gray-400 uppercase font-bold tracking-widest">---</p>
+                </div>
+                <button onclick="handleLogout()" class="bg-white/10 p-3 rounded-2xl">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Today's Earnings</p>
+                    <p id="total-earnings" class="text-2xl font-black text-green-400">₹0</p>
+                </div>
+                <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Completed</p>
+                    <p id="total-orders" class="text-2xl font-black">0 Orders</p>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex px-6 mt-6 border-b bg-white sticky top-0 z-10">
+            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs uppercase tab-active">Active</button>
+            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs uppercase text-gray-400">History</button>
+        </div>
+
+        <main id="rider-list" class="p-4 space-y-4"></main>
+    </div>
 
     <script>
         const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };
         firebase.initializeApp(config);
         const db = firebase.firestore();
 
+        let currentRider = JSON.parse(localStorage.getItem('rider_session')) || null;
         let currentTab = 'active';
 
-        // THE ULTIMATE NAVIGATION FIX
-        function openNavigation(addressString) {
-            console.log("Attempting to navigate to:", addressString);
-            
-            // This regex specifically pulls numbers after "GPS:"
-            const coords = addressString.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
-            
-            if (coords) {
-                const lat = coords[1];
-                const lon = coords[2];
-                
-                // Method 1: Universal Google Maps Link (Works on all devices)
-                const universalUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-                
-                // Method 2: Intent Link (Best for Android Apps)
-                const intentUrl = `geo:${lat},${lon}?q=${lat},${lon}(Customer Location)`;
+        window.onload = () => { 
+            if(!currentRider) showAuth('login'); 
+            else {
+                document.getElementById('rider-display-name').innerText = currentRider.name;
+                document.getElementById('main-app').classList.remove('hidden');
+                loadOrders(); 
+            }
+        };
 
-                // Try opening the universal web link first as it's most reliable from a browser
-                window.location.href = universalUrl; 
+        // AUTH FUNCTIONS
+        function showAuth(v) { 
+            document.getElementById('auth-overlay').classList.add('active');
+            ['login','register','forgot'].forEach(id => document.getElementById(id+'-view').classList.add('hidden')); 
+            document.getElementById(v+'-view').classList.remove('hidden'); 
+        }
+
+        async function handleLogin() {
+            const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
+            const s = await db.collection("riders").where("phone","==",p).where("pass","==",pw).get();
+            if(s.empty) return alert("Rider not found or wrong password");
+            currentRider = s.docs[0].data();
+            localStorage.setItem('rider_session', JSON.stringify(currentRider));
+            location.reload();
+        }
+
+        async function handleRegister() {
+            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, d = document.getElementById('reg-dob').value, pw = document.getElementById('reg-pass').value;
+            if(!n || !p || !pw) return alert("Fill all fields");
+            await db.collection("riders").add({ name:n, phone:p, dob:d, pass:pw });
+            alert("Rider Registered! Please login."); showAuth('login');
+        }
+
+        async function handleForgot() {
+            const p = document.getElementById('f-phone').value, n = document.getElementById('f-name').value, d = document.getElementById('f-dob').value;
+            const s = await db.collection("riders").where("phone","==",p).where("name","==",n).where("dob","==",d).get();
+            if(s.empty) return alert("Verification failed");
+            alert("Your Password: " + s.docs[0].data().pass);
+        }
+
+        function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
+
+        // NAVIGATION LOGIC
+        function openNavigation(addressString) {
+            const coordsMatch = addressString.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+            if (coordsMatch) {
+                const lat = coordsMatch[1], lon = coordsMatch[2];
+                window.location.href = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
             } else {
-                // Fallback: Search by text if GPS is missing
-                const searchText = encodeURIComponent(addressString);
-                window.location.href = `https://www.google.com/maps/search/?api=1&query=${searchText}`;
+                window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressString)}`;
             }
         }
 
@@ -105,7 +170,7 @@
                     const itemsText = Object.values(d.items).map(i => `${i.name} (x${i.qty})`).join(', ');
 
                     list.innerHTML += `
-                        <div class="bg-white p-6 rounded-[32px] card-shadow border border-gray-100">
+                        <div class="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
                             <div class="flex justify-between items-start mb-4">
                                 <div>
                                     <p class="text-[9px] font-bold text-gray-300 uppercase">#${d.orderId}</p>
@@ -128,7 +193,7 @@
                                 </div>
                                 <div class="flex items-start gap-3 pt-2 border-t border-gray-200/50">
                                     <i class="fa-solid fa-location-dot text-red-500 mt-1"></i>
-                                    <p class="text-[11px] font-bold text-gray-500">${d.address}</p>
+                                    <p class="text-[11px] font-bold text-gray-500 leading-relaxed">${d.address}</p>
                                 </div>
                             </div>
 
@@ -139,7 +204,7 @@
                                 ${d.status === 'PENDING' ? `
                                     <button onclick="updateStatus('${doc.id}', 'ACCEPTED')" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase">Accept</button>
                                 ` : d.status === 'ACCEPTED' ? `
-                                    <button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase">Mark Delivered</button>
+                                    <button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase text-center">Deliver</button>
                                 ` : ''}
                             </div>
                         </div>`;
@@ -151,7 +216,6 @@
         }
 
         async function updateStatus(id, s) { await db.collection("orders").doc(id).update({ status: s }); }
-        window.onload = loadOrders;
     </script>
 </body>
 </html>
