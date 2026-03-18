@@ -22,33 +22,19 @@
     <div id="auth-overlay" class="auth-screen">
         <div id="login-view" class="space-y-6 pt-10 text-center">
             <h1 class="text-4xl font-black italic text-slate-800">Rider Login</h1>
-            <p class="text-xs font-bold text-gray-400 uppercase tracking-widest">Village Express Logistics</p>
-            <input type="tel" id="login-phone" placeholder="Rider Mobile Number">
+            <input type="tel" id="login-phone" placeholder="Mobile Number">
             <input type="password" id="login-pass" placeholder="Password">
             <button onclick="handleLogin()" class="btn-primary">Enter Portal</button>
-            <div class="flex justify-between px-2 mt-4">
-                <button onclick="showAuth('register')" class="text-[10px] font-black text-blue-600 uppercase">Register Rider</button>
-                <button onclick="showAuth('forgot')" class="text-[10px] font-black text-red-500 uppercase">Forgot Password?</button>
-            </div>
+            <button onclick="showAuth('register')" class="text-[10px] font-black text-blue-600 mt-4 uppercase">Register New Rider</button>
         </div>
 
         <div id="register-view" class="hidden space-y-4">
             <h2 class="text-2xl font-black italic">Rider Registration</h2>
             <input type="text" id="reg-name" placeholder="Full Name">
             <input type="tel" id="reg-phone" placeholder="Mobile Number">
-            <input type="date" id="reg-dob">
-            <input type="password" id="reg-pass" placeholder="Create Password">
-            <button onclick="handleRegister()" class="btn-primary">Create Rider Account</button>
-            <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 uppercase mt-4">Back to Login</button>
-        </div>
-
-        <div id="forgot-view" class="hidden space-y-4">
-            <h2 class="text-2xl font-black italic text-red-600">Account Recovery</h2>
-            <input type="tel" id="f-phone" placeholder="Registered Mobile">
-            <input type="text" id="f-name" placeholder="Full Name">
-            <input type="date" id="f-dob">
-            <button onclick="handleForgot()" class="btn-primary">Recover Password</button>
-            <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 uppercase mt-4">Back</button>
+            <input type="password" id="reg-pass" placeholder="Password">
+            <button onclick="handleRegister()" class="btn-primary">Register</button>
+            <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 mt-4 uppercase">Back</button>
         </div>
     </div>
 
@@ -59,28 +45,24 @@
                     <h1 class="text-2xl font-black italic">Rider Portal</h1>
                     <p id="rider-display-name" class="text-xs text-gray-400 uppercase font-bold tracking-widest">---</p>
                 </div>
-                <button onclick="handleLogout()" class="bg-white/10 p-3 rounded-2xl">
-                    <i class="fa-solid fa-right-from-bracket"></i>
-                </button>
+                <button onclick="handleLogout()" class="bg-white/10 p-3 rounded-2xl"><i class="fa-solid fa-power-off"></i></button>
             </div>
-
             <div class="grid grid-cols-2 gap-4">
                 <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase">Today's Earnings</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Earnings</p>
                     <p id="total-earnings" class="text-2xl font-black text-green-400">₹0</p>
                 </div>
                 <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase">Completed</p>
-                    <p id="total-orders" class="text-2xl font-black">0 Orders</p>
+                    <p class="text-[10px] font-bold text-gray-400 uppercase">Status</p>
+                    <p id="rider-status-text" class="text-sm font-black text-orange-400 uppercase">Online</p>
                 </div>
             </div>
         </header>
 
         <div class="flex px-6 mt-6 border-b bg-white sticky top-0 z-10">
-            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs uppercase tab-active">Active</button>
-            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs uppercase text-gray-400">History</button>
+            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs tab-active uppercase">Orders</button>
+            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs text-gray-400 uppercase">History</button>
         </div>
-
         <main id="rider-list" class="p-4 space-y-4"></main>
     </div>
 
@@ -91,131 +73,133 @@
 
         let currentRider = JSON.parse(localStorage.getItem('rider_session')) || null;
         let currentTab = 'active';
+        let watchId = null;
 
         window.onload = () => { 
             if(!currentRider) showAuth('login'); 
             else {
                 document.getElementById('rider-display-name').innerText = currentRider.name;
                 document.getElementById('main-app').classList.remove('hidden');
+                startLocationTracking();
                 loadOrders(); 
             }
         };
 
-        // AUTH FUNCTIONS
+        // NAVIGATION FIX: Using the Google Maps Search API
+        function openNavigation(addressString) {
+            const coords = addressString.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+            let url = "";
+            if (coords) {
+                url = `https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[2]}`;
+            } else {
+                url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressString)}`;
+            }
+            window.open(url, '_blank');
+        }
+
+        // LOCATION TRACKING
+        function startLocationTracking() {
+            if (navigator.geolocation) {
+                watchId = navigator.geolocation.watchPosition(pos => {
+                    db.collection("riders").doc(currentRider.id).update({
+                        lat: pos.coords.latitude,
+                        lng: pos.coords.longitude,
+                        lastSeen: Date.now()
+                    });
+                }, err => console.error(err), { enableHighAccuracy: true });
+            }
+        }
+
+        // ORDER LOGIC
+        function loadOrders() {
+            db.collection("orders").onSnapshot(snap => {
+                const list = document.getElementById('rider-list');
+                list.innerHTML = "";
+                let hasActiveJob = false;
+
+                // Check if THIS rider already has an active delivery
+                const myActiveOrder = snap.docs.find(doc => doc.data().riderId === currentRider.id && doc.data().status === "ACCEPTED");
+                if(myActiveOrder) hasActiveJob = true;
+
+                document.getElementById('rider-status-text').innerText = hasActiveJob ? "Busy" : "Online";
+
+                snap.docs.forEach(doc => {
+                    const d = doc.data();
+                    
+                    // Logic: Hide pending orders if I'm already busy delivering
+                    if(hasActiveJob && d.status === "PENDING") return;
+
+                    // Logic: If order is ACCEPTED, only show it to the rider who accepted it
+                    if(d.status === "ACCEPTED" && d.riderId !== currentRider.id) return;
+
+                    // Tab Filtering
+                    const isHistory = (d.status === "DELIVERED" || d.status === "CANCELLED");
+                    if(currentTab === 'active' && isHistory) return;
+                    if(currentTab === 'history' && !isHistory) return;
+
+                    list.innerHTML += `
+                        <div class="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="text-[9px] font-bold text-gray-300">#${d.orderId}</span>
+                                <span class="bg-orange-50 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black uppercase">${d.status}</span>
+                            </div>
+                            <h3 class="font-black text-lg mb-4">${Object.values(d.items).map(i => i.name).join(', ')}</h3>
+                            <div class="bg-slate-50 p-4 rounded-2xl mb-6">
+                                <div class="flex justify-between items-center mb-2">
+                                    <p class="font-bold text-sm">${d.customer.name}</p>
+                                    <a href="tel:${d.customer.phone}" class="text-blue-600"><i class="fa-solid fa-phone"></i></a>
+                                </div>
+                                <p class="text-[11px] text-gray-500 font-bold">${d.address}</p>
+                            </div>
+                            <div class="flex gap-3">
+                                <button onclick="openNavigation('${d.address}')" class="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-black text-xs uppercase"><i class="fa-solid fa-location-arrow"></i> Navigate</button>
+                                ${d.status === 'PENDING' ? `
+                                    <button onclick="acceptOrder('${doc.id}')" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase">Accept</button>
+                                ` : d.status === 'ACCEPTED' ? `
+                                    <button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase">Deliver</button>
+                                ` : ''}
+                            </div>
+                        </div>`;
+                });
+            });
+        }
+
+        async function acceptOrder(id) {
+            // Assign order to THIS rider only and update status
+            await db.collection("orders").doc(id).update({
+                status: "ACCEPTED",
+                riderId: currentRider.id,
+                riderName: currentRider.name,
+                riderPhone: currentRider.phone
+            });
+        }
+
+        async function updateStatus(id, s) { await db.collection("orders").doc(id).update({ status: s }); }
+
+        // AUTH LOGIC
         function showAuth(v) { 
             document.getElementById('auth-overlay').classList.add('active');
-            ['login','register','forgot'].forEach(id => document.getElementById(id+'-view').classList.add('hidden')); 
-            document.getElementById(v+'-view').classList.remove('hidden'); 
+            document.getElementById('login-view').classList.toggle('hidden', v !== 'login');
+            document.getElementById('register-view').classList.toggle('hidden', v !== 'register');
         }
 
         async function handleLogin() {
             const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
             const s = await db.collection("riders").where("phone","==",p).where("pass","==",pw).get();
-            if(s.empty) return alert("Rider not found or wrong password");
-            currentRider = s.docs[0].data();
+            if(s.empty) return alert("Invalid Login");
+            currentRider = { id: s.docs[0].id, ...s.docs[0].data() };
             localStorage.setItem('rider_session', JSON.stringify(currentRider));
             location.reload();
         }
 
         async function handleRegister() {
-            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, d = document.getElementById('reg-dob').value, pw = document.getElementById('reg-pass').value;
-            if(!n || !p || !pw) return alert("Fill all fields");
-            await db.collection("riders").add({ name:n, phone:p, dob:d, pass:pw });
-            alert("Rider Registered! Please login."); showAuth('login');
-        }
-
-        async function handleForgot() {
-            const p = document.getElementById('f-phone').value, n = document.getElementById('f-name').value, d = document.getElementById('f-dob').value;
-            const s = await db.collection("riders").where("phone","==",p).where("name","==",n).where("dob","==",d).get();
-            if(s.empty) return alert("Verification failed");
-            alert("Your Password: " + s.docs[0].data().pass);
+            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, pw = document.getElementById('reg-pass').value;
+            const docRef = await db.collection("riders").add({ name:n, phone:p, pass:pw, lat:0, lng:0 });
+            alert("Rider registered!"); showAuth('login');
         }
 
         function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
-
-        // NAVIGATION LOGIC
-        function openNavigation(addressString) {
-            const coordsMatch = addressString.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
-            if (coordsMatch) {
-                const lat = coordsMatch[1], lon = coordsMatch[2];
-                window.location.href = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
-            } else {
-                window.location.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressString)}`;
-            }
-        }
-
-        function switchTab(t) {
-            currentTab = t;
-            document.getElementById('tab-active').className = t === 'active' ? 'flex-1 py-4 font-black text-xs uppercase tab-active' : 'flex-1 py-4 font-black text-xs uppercase text-gray-400';
-            document.getElementById('tab-history').className = t === 'history' ? 'flex-1 py-4 font-black text-xs uppercase tab-active' : 'flex-1 py-4 font-black text-xs uppercase text-gray-400';
-            loadOrders();
-        }
-
-        function loadOrders() {
-            db.collection("orders").onSnapshot(snap => {
-                const list = document.getElementById('rider-list');
-                list.innerHTML = "";
-                let earnings = 0, count = 0;
-
-                const sortedDocs = snap.docs.sort((a,b) => b.data().timestamp - a.data().timestamp);
-
-                sortedDocs.forEach(doc => {
-                    const d = doc.data();
-                    if(d.status === "DELIVERED") { earnings += (d.total - 5); count++; }
-
-                    const isHistory = (d.status === "DELIVERED" || d.status === "CANCELLED");
-                    if(currentTab === 'active' && isHistory) return;
-                    if(currentTab === 'history' && !isHistory) return;
-
-                    const itemsText = Object.values(d.items).map(i => `${i.name} (x${i.qty})`).join(', ');
-
-                    list.innerHTML += `
-                        <div class="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
-                            <div class="flex justify-between items-start mb-4">
-                                <div>
-                                    <p class="text-[9px] font-bold text-gray-300 uppercase">#${d.orderId}</p>
-                                    <h3 class="font-black text-lg text-slate-800">${itemsText}</h3>
-                                </div>
-                                <span class="bg-orange-50 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black uppercase">${d.status}</span>
-                            </div>
-
-                            <div class="bg-slate-50 p-4 rounded-2xl space-y-3 mb-6">
-                                <div class="flex items-center justify-between">
-                                    <div class="flex items-center gap-3">
-                                        <div class="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                                            <i class="fa-solid fa-user text-xs"></i>
-                                        </div>
-                                        <p class="font-black text-sm">${d.customer.name}</p>
-                                    </div>
-                                    <a href="tel:${d.customer.phone}" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg">
-                                        <i class="fa-solid fa-phone-alt text-xs"></i>
-                                    </a>
-                                </div>
-                                <div class="flex items-start gap-3 pt-2 border-t border-gray-200/50">
-                                    <i class="fa-solid fa-location-dot text-red-500 mt-1"></i>
-                                    <p class="text-[11px] font-bold text-gray-500 leading-relaxed">${d.address}</p>
-                                </div>
-                            </div>
-
-                            <div class="flex gap-3">
-                                <button onclick="openNavigation('${d.address}')" class="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-black text-xs uppercase flex items-center justify-center gap-2">
-                                    <i class="fa-solid fa-location-arrow"></i> Navigate
-                                </button>
-                                ${d.status === 'PENDING' ? `
-                                    <button onclick="updateStatus('${doc.id}', 'ACCEPTED')" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase">Accept</button>
-                                ` : d.status === 'ACCEPTED' ? `
-                                    <button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase text-center">Deliver</button>
-                                ` : ''}
-                            </div>
-                        </div>`;
-                });
-
-                document.getElementById('total-earnings').innerText = `₹${earnings}`;
-                document.getElementById('total-orders').innerText = `${count} Orders`;
-            });
-        }
-
-        async function updateStatus(id, s) { await db.collection("orders").doc(id).update({ status: s }); }
+        function switchTab(t) { currentTab = t; loadOrders(); }
     </script>
 </body>
 </html>
