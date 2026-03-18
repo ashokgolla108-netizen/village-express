@@ -22,7 +22,7 @@
                 <i class="fa-solid fa-location-dot"></i>
                 <div>
                     <h1 class="text-lg font-black italic leading-none">Village Express</h1>
-                    <p id="addr-display" class="text-[10px] font-bold">Tap to set current location...</p>
+                    <p id="addr-display" class="text-[10px] font-bold">Set location in Kalyandurg...</p>
                 </div>
             </div>
             <button onclick="openProfile()" class="bg-white/20 p-2 rounded-full w-10 h-10 flex items-center justify-center shadow-inner">
@@ -53,7 +53,7 @@
                 <p id="cart-count" class="text-[9px] opacity-80 uppercase mb-1">0 ITEMS</p>
                 <p id="cart-total-bar" class="text-sm">₹0</p>
             </div>
-            <span class="text-xs">PROCEED TO PAY <i class="fa-solid fa-chevron-right ml-1"></i></span>
+            <span class="text-xs font-black">PROCEED TO PAY <i class="fa-solid fa-chevron-right ml-1"></i></span>
         </button>
     </div>
 
@@ -71,6 +71,7 @@
                 <div class="space-y-2 text-xs font-bold text-gray-600">
                     <div class="flex justify-between"><span>Item Total</span><span id="bill-sub">₹0</span></div>
                     <div class="flex justify-between"><span>Handling charge</span><span>+₹5</span></div>
+                    <div class="flex justify-between"><span>Delivery fee</span><span>+₹15</span></div>
                     <div class="flex justify-between text-base font-black text-slate-900 pt-3 border-t border-dashed mt-2">
                         <span>Bill total</span><span id="bill-grand">₹0</span>
                     </div>
@@ -78,20 +79,19 @@
             </div>
 
             <div class="bg-gray-50 p-4 rounded-2xl space-y-3">
-                <p class="text-[10px] font-black text-gray-400 uppercase">Delivery Details</p>
-                <input type="text" id="cust-name" placeholder="Full Name" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none">
-                <input type="text" id="cust-mobile" readonly class="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-xs font-bold text-gray-500 outline-none">
-                <input type="text" id="cust-building" placeholder="Building Name / Near Landmark" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none">
+                <p class="text-[10px] font-black text-gray-400 uppercase">Deliver to</p>
+                <input type="text" id="cust-name" placeholder="Enter Your Name" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none">
+                <input type="text" id="cust-mobile" readonly class="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-xs font-bold text-gray-500">
+                <input type="text" id="cust-building" placeholder="Building Name / Landmark" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none">
                 
                 <div class="flex justify-between items-center pt-2">
-                    <p class="text-[10px] font-black text-gray-400 uppercase">Area Address</p>
-                    <button onclick="getCurrentLocation()" class="text-[10px] font-black text-blue-600 uppercase"><i class="fa-solid fa-crosshairs mr-1"></i> Use Current Location</button>
+                    <button onclick="getCurrentLocation()" class="text-[10px] font-black text-blue-600 uppercase"><i class="fa-solid fa-crosshairs mr-1"></i> Update Current Location</button>
                 </div>
-                <textarea id="manual-address" placeholder="Location in Kalyandurg..." class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none" rows="2"></textarea>
+                <textarea id="manual-address" placeholder="Address Details..." class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none" rows="2"></textarea>
             </div>
 
             <div class="space-y-2">
-                <p class="text-[10px] font-black text-gray-400 uppercase">Payment Method</p>
+                <p class="text-[10px] font-black text-gray-400 uppercase ml-2">Payment Method</p>
                 <button id="pay-upi" onclick="setPayment('UPI')" class="w-full p-4 border-2 border-blue-100 rounded-2xl flex items-center gap-3 bg-blue-50/50">
                     <i class="fa-solid fa-mobile-screen-button text-blue-500"></i>
                     <span class="text-xs font-black">Pay via UPI</span>
@@ -102,7 +102,7 @@
                 </button>
             </div>
 
-            <button onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest active:scale-95 transition-transform mb-8">
+            <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest active:scale-95 transition-transform mb-12">
                 Confirm Order
             </button>
         </div>
@@ -114,10 +114,10 @@
         const db = firebase.firestore();
         
         let allProducts = [], cart = {}, paymentMethod = "UPI";
-        const USER_UID = "8328016917"; //
+        const MOBILE_ID = "8328016917"; //
 
         window.onload = () => {
-            document.getElementById('cust-mobile').value = USER_UID;
+            document.getElementById('cust-mobile').value = MOBILE_ID;
             db.collection("products").onSnapshot(snap => {
                 allProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderItems(allProducts);
@@ -130,22 +130,20 @@
             list.forEach(p => {
                 const qty = cart[p.id]?.qty || 0;
                 grid.innerHTML += `
-                    <div class="bg-white border rounded-2xl p-3 shadow-sm flex flex-col justify-between">
-                        <div class="aspect-square rounded-xl mb-3 overflow-hidden bg-gray-50 flex items-center justify-center">
-                            <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-full h-full object-contain p-2">
+                    <div class="bg-white border rounded-2xl p-3 flex flex-col justify-between">
+                        <div class="aspect-square bg-gray-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
+                            <img src="${p.image || ''}" class="w-full h-full object-contain p-2">
                         </div>
-                        <div>
-                            <p class="font-black text-[11px] h-8 overflow-hidden mb-1">${p.name}</p>
-                            <div class="flex justify-between items-center mt-2">
-                                <p class="text-[12px] font-black">₹${p.price}</p>
-                                ${qty === 0 ? 
-                                `<button onclick="updateQty('${p.id}', 1)" class="border-2 border-green-600 text-green-700 px-4 py-1 rounded-lg text-[10px] font-black uppercase">Add</button>` :
-                                `<div class="flex items-center gap-3 bg-green-600 text-white px-2 py-1 rounded-lg">
-                                    <button onclick="updateQty('${p.id}', -1)" class="text-xs font-black">-</button>
-                                    <span class="text-[10px] font-black">${qty}</span>
-                                    <button onclick="updateQty('${p.id}', 1)" class="text-xs font-black">+</button>
-                                </div>`}
-                            </div>
+                        <p class="font-black text-[11px] h-8 overflow-hidden">${p.name}</p>
+                        <div class="flex justify-between items-center mt-2">
+                            <p class="text-[12px] font-black">₹${p.price}</p>
+                            ${qty === 0 ? 
+                            `<button onclick="updateQty('${p.id}', 1)" class="border-2 border-green-600 text-green-700 px-4 py-1 rounded-lg text-[10px] font-black uppercase">Add</button>` :
+                            `<div class="flex items-center gap-3 bg-green-600 text-white px-2 py-1 rounded-lg">
+                                <button onclick="updateQty('${p.id}', -1)" class="text-xs font-black">-</button>
+                                <span class="text-[10px] font-black">${qty}</span>
+                                <button onclick="updateQty('${p.id}', 1)" class="text-xs font-black">+</button>
+                            </div>`}
                         </div>
                     </div>`;
             });
@@ -153,11 +151,11 @@
 
         function updateQty(id, change) {
             const p = allProducts.find(x => x.id === id);
-            if (!cart[id]) cart[id] = { name: p.name, price: p.price, qty: 0, img: p.image };
+            if (!cart[id]) cart[id] = { name: p.name, price: p.price, qty: 0 };
             cart[id].qty += change;
             if (cart[id].qty <= 0) delete cart[id];
             updateCartUI();
-            if (document.getElementById('checkout-view').classList.contains('hidden') === false) showCheckout();
+            if (!document.getElementById('checkout-view').classList.contains('hidden')) showCheckout();
             renderItems(allProducts);
         }
 
@@ -165,7 +163,7 @@
             let sub = 0, count = 0;
             Object.values(cart).forEach(i => { sub += i.price * i.qty; count += i.qty; });
             document.getElementById('cart-bar').classList.toggle('hidden', count === 0);
-            document.getElementById('cart-total-bar').innerText = `₹${sub + 5}`;
+            document.getElementById('cart-total-bar').innerText = `₹${sub + 20}`; // sub + 5 (handling) + 15 (delivery)
             document.getElementById('cart-count').innerText = `${count} ITEMS`;
         }
 
@@ -177,48 +175,66 @@
                 const i = cart[id];
                 sub += (i.price * i.qty);
                 list.innerHTML += `
-                    <div class="flex justify-between items-center">
-                        <p class="text-xs font-black">${i.name}</p>
-                        <div class="flex items-center gap-4">
-                            <p class="text-[10px] text-gray-400 font-bold">₹${i.price * i.qty}</p>
+                    <div class="flex justify-between items-center border-b border-dashed pb-2">
+                        <div>
+                            <p class="text-xs font-black">${i.name}</p>
+                            <p class="text-[9px] text-gray-400 font-bold">₹${i.price} per unit</p>
+                        </div>
+                        <div class="flex items-center gap-3">
                             <div class="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-lg">
                                 <button onclick="updateQty('${id}', -1)" class="text-xs font-black px-1">-</button>
                                 <span class="text-[10px] font-black">${i.qty}</span>
                                 <button onclick="updateQty('${id}', 1)" class="text-xs font-black px-1">+</button>
                             </div>
+                            <p class="text-xs font-black w-12 text-right">₹${i.price * i.qty}</p>
                         </div>
                     </div>`;
             });
             document.getElementById('bill-sub').innerText = `₹${sub}`;
-            document.getElementById('bill-grand').innerText = `₹${sub + 5}`;
+            document.getElementById('bill-grand').innerText = `₹${sub + 20}`;
             document.getElementById('checkout-view').classList.remove('hidden');
         }
 
-        function placeOrder() {
+        async function placeOrder() {
             const name = document.getElementById('cust-name').value;
             const addr = document.getElementById('manual-address').value;
-            if(!name || !addr) return alert("Please fill Name and Address");
+            const btn = document.getElementById('confirm-btn');
 
-            const oid = "ORD" + Math.floor(Math.random() * 10000000);
-            const total = parseInt(document.getElementById('bill-grand').innerText.replace('₹',''));
+            if(!name || !addr) return alert("Please fill in your Name and Address");
             
-            db.collection("orders").add({
-                orderId: oid,
-                items: cart,
-                total: total,
-                customer: { name, mobile: USER_UID, building: document.getElementById('cust-building').value },
-                address: addr,
-                method: paymentMethod,
-                status: "Confirmed",
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
+            btn.disabled = true;
+            btn.innerText = "PROCESSING...";
+
+            const oid = "ORD" + Date.now().toString().slice(-7);
+            const total = parseInt(document.getElementById('bill-grand').innerText.replace('₹',''));
+
+            try {
+                await db.collection("orders").add({
+                    orderId: oid,
+                    items: cart,
+                    total: total,
+                    customer: { 
+                        name: name, 
+                        mobile: MOBILE_ID, 
+                        landmark: document.getElementById('cust-building').value 
+                    },
+                    address: addr,
+                    method: paymentMethod,
+                    status: "Confirmed",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
                 if(paymentMethod === "UPI") {
                     window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${total}&cu=INR&tn=${oid}`;
                 } else {
-                    alert("Order Placed Successfully!");
+                    alert("Order Confirmed! Your items are on the way.");
                     location.reload();
                 }
-            }).catch(err => alert("Error: " + err.message));
+            } catch (error) {
+                alert("Order failed: " + error.message);
+                btn.disabled = false;
+                btn.innerText = "CONFIRM ORDER";
+            }
         }
 
         function setPayment(m) {
@@ -231,15 +247,18 @@
             navigator.geolocation.getCurrentPosition(pos => {
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`)
                 .then(r => r.json()).then(data => {
-                    const cleanAddr = data.display_name.split(',').slice(0, 4).join(',');
-                    document.getElementById('manual-address').value = cleanAddr;
-                    document.getElementById('addr-display').innerText = cleanAddr;
+                    const addr = data.display_name.split(',').slice(0, 4).join(',');
+                    document.getElementById('manual-address').value = addr;
+                    document.getElementById('addr-display').innerText = addr;
                 });
-            });
+            }, () => alert("Enable GPS to set location"));
         }
-        function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
+
+        function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
         function filterItems(c) { renderItems(c === 'All' ? allProducts : allProducts.filter(p => p.category === c)); }
+        function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
+        function openProfile() { alert("Account: " + MOBILE_ID); }
     </script>
 </body>
-        </html>
-        
+    </html>
+    
