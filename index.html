@@ -23,7 +23,7 @@
                 <i class="fa-solid fa-location-dot"></i>
                 <div class="overflow-hidden">
                     <h1 class="text-lg font-black italic leading-none">Village Express</h1>
-                    <p id="addr-display" class="text-[10px] font-bold truncate w-32">Kalyandurg, Anantapur</p>
+                    <p class="text-[10px] font-bold truncate w-32">Kalyandurg, Anantapur</p>
                 </div>
             </div>
             <button onclick="openProfile()" class="bg-white/20 p-2 rounded-full w-10 h-10 flex items-center justify-center shadow-inner">
@@ -32,7 +32,7 @@
         </div>
         <div class="relative bg-white rounded-xl flex items-center px-4 py-3 shadow-sm">
             <i class="fa-solid fa-search text-gray-400 mr-3"></i>
-            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search "milk" or "tomato"' class="w-full outline-none text-sm font-medium bg-transparent">
+            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search items...' class="w-full outline-none text-sm font-medium bg-transparent">
         </div>
     </header>
 
@@ -68,22 +68,8 @@
             <div class="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl text-slate-400">
                 <i class="fa-solid fa-user"></i>
             </div>
-            <p class="text-[12px] font-bold text-gray-400">8328016917</p>
+            <p id="profile-number" class="text-[12px] font-bold text-gray-400">8328016917</p>
         </div>
-
-        <div class="bg-white mb-2 divide-y">
-            <div onclick="toggleAddressBook()" class="p-4 flex items-center justify-between active:bg-gray-50">
-                <div class="flex items-center gap-4 text-sm font-bold"><i class="fa-solid fa-address-book text-gray-400"></i> Address Book</div>
-                <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
-            <div id="address-list-container" class="hidden p-4 bg-gray-50 text-xs font-bold space-y-2">
-                <div class="p-3 bg-white border rounded-xl flex justify-between items-center shadow-sm">
-                    <span>🏠 Home: Kalyandurg Madakasira Road</span>
-                    <i class="fa-solid fa-circle-check text-green-600"></i>
-                </div>
-            </div>
-        </div>
-
         <div id="history-list" class="bg-white p-4 space-y-4 mb-20">
             <h3 class="text-[10px] font-black uppercase text-gray-400">Past Orders</h3>
         </div>
@@ -103,7 +89,7 @@
     <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
         <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center">
             <div class="text-left leading-none">
-                <p id="cart-count" class="text-[9px] mb-1 uppercase tracking-tighter">0 ITEMS</p>
+                <p id="cart-count" class="text-[9px] mb-1">0 ITEMS</p>
                 <p id="cart-total-bar" class="text-sm">₹0</p>
             </div>
             <span class="text-xs font-black">PROCEED TO PAY <i class="fa-solid fa-chevron-right ml-1"></i></span>
@@ -115,10 +101,8 @@
             <button onclick="hideCheckout()"><i class="fa-solid fa-arrow-left"></i></button>
             <h2 class="font-black text-sm">Final Step</h2>
         </div>
-        
         <div class="p-4 space-y-6 pb-32">
             <div id="checkout-items" class="space-y-3 text-xs font-bold border-b pb-4"></div>
-
             <div class="bg-gray-50 p-5 rounded-2xl space-y-2">
                 <h3 class="text-[10px] font-black uppercase text-gray-400 mb-2">Bill Details</h3>
                 <div class="flex justify-between text-xs font-bold text-gray-600"><span>Item Total</span><span id="bill-sub">₹0</span></div>
@@ -127,35 +111,26 @@
                     <span>Total Bill</span><span id="bill-grand">₹0</span>
                 </div>
             </div>
-
             <div class="space-y-4">
                 <div class="flex justify-between items-center">
                     <h3 class="text-[10px] font-black uppercase text-gray-400">Deliver To</h3>
-                    <button onclick="fetchCurrentLocation()" class="text-[9px] font-black text-blue-600 uppercase"><i class="fa-solid fa-location-crosshairs mr-1"></i> Use Current Location</button>
+                    <button id="geo-btn" onclick="fetchCurrentLocation()" class="text-[9px] font-black text-blue-600 uppercase"><i class="fa-solid fa-location-crosshairs mr-1"></i> Use Current Location</button>
                 </div>
                 <input type="text" id="cust-name" placeholder="Receiver's Name" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none focus:border-green-600">
                 <input type="tel" id="cust-phone" placeholder="Mobile Number" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none focus:border-green-600">
                 <textarea id="manual-address" placeholder="Building Name / House No / Street Name" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none focus:border-green-600" rows="3"></textarea>
             </div>
-
             <div class="space-y-3">
                 <h3 class="text-[10px] font-black uppercase text-gray-400">Payment Method</h3>
                 <label class="flex items-center justify-between p-4 border rounded-xl bg-blue-50/30 border-blue-100">
-                    <div class="flex items-center gap-3">
-                        <i class="fa-solid fa-mobile-screen-button text-blue-600"></i>
-                        <span class="text-xs font-bold">Pay via UPI</span>
-                    </div>
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-mobile-screen-button text-blue-600"></i><span class="text-xs font-bold">Pay via UPI</span></div>
                     <input type="radio" name="pay-method" value="UPI" checked class="accent-blue-600 w-4 h-4">
                 </label>
                 <label class="flex items-center justify-between p-4 border rounded-xl">
-                    <div class="flex items-center gap-3">
-                        <i class="fa-solid fa-hand-holding-dollar text-gray-400"></i>
-                        <span class="text-xs font-bold">Cash on Delivery</span>
-                    </div>
+                    <div class="flex items-center gap-3"><i class="fa-solid fa-hand-holding-dollar text-gray-400"></i><span class="text-xs font-bold">Cash on Delivery</span></div>
                     <input type="radio" name="pay-method" value="COD" class="accent-green-600 w-4 h-4">
                 </label>
             </div>
-
             <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-wider active:scale-95 transition-all">Confirm Order</button>
         </div>
     </div>
@@ -239,7 +214,7 @@
             if(!name || !phone || !address) return alert("Please fill Name, Phone and Address.");
 
             await db.collection("orders").add({
-                orderId: oid, items: cart, total: total, status: "ACCEPTED",
+                orderId: oid, items: cart, total: total, status: "PENDING",
                 paymentMethod: method, customer: { name, phone },
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(), address: address
             });
@@ -248,7 +223,7 @@
             if(method === "UPI") {
                 window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${total}&cu=INR&tn=${oid}`;
             } else {
-                alert("Order Placed (COD)!");
+                alert("Order Placed (Status: PENDING)!");
                 location.reload();
             }
         }
@@ -258,33 +233,53 @@
             const d = doc.data();
             currentViewingDocId = docId;
 
-            // STRICT CANCEL FILTER: Only show for specific active statuses
-            const cancellable = ['ACCEPTED', 'PENDING', 'CONFIRMED'].includes(d.status.toUpperCase());
+            const cancellable = ['PENDING', 'ACCEPTED'].includes(d.status.toUpperCase());
             document.getElementById('cancel-btn-main').classList.toggle('hidden', !cancellable);
             
-            let itemsHtml = Object.values(d.items).map(i => `<div class="flex justify-between text-xs py-1 border-b border-dashed"><span>${i.name} x${i.qty}</span><span>₹${i.price * i.qty}</span></div>`).join('');
+            let itemsHtml = Object.values(d.items).map(i => `
+                <div class="flex justify-between text-xs py-1 border-b border-dashed">
+                    <span>${i.name} x${i.qty}</span>
+                    <span>₹${i.price * i.qty}</span>
+                </div>`).join('');
             
             document.getElementById('detail-content').innerHTML = `
                 <div class="bg-white p-4 rounded-2xl border shadow-sm">
                     <p class="text-[10px] font-black uppercase text-gray-400">Order ID: ${d.orderId}</p>
                     <h3 class="text-xl font-black ${d.status === 'CANCELLED' ? 'text-red-600' : 'text-green-700'}">${d.status}</h3>
-                    <p class="text-[9px] font-bold text-gray-400">Payment: ${d.paymentMethod || 'UPI'}</p>
+                    <p class="text-[9px] font-bold text-gray-400">Payment: ${d.paymentMethod}</p>
                 </div>
-
                 <div class="space-y-1">${itemsHtml}</div>
-
-                <div class="bg-gray-50 p-4 rounded-xl flex justify-between text-xs font-bold"><span>Total Bill</span><span>₹${d.total}</span></div>
-
+                <div class="bg-gray-50 p-4 rounded-xl flex justify-between text-xs font-black"><span>Total Bill</span><span>₹${d.total}</span></div>
                 <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex justify-between items-center">
                     <div><p class="text-[9px] font-black text-blue-600 uppercase">Rider</p><p class="text-xs font-black">Golla Ashok (8328016917)</p></div>
                     <a href="tel:8328016917" class="bg-blue-600 text-white p-2 rounded-full w-9 h-9 flex items-center justify-center"><i class="fa-solid fa-phone"></i></a>
                 </div>
-
                 <div>
                     <h4 class="text-[10px] font-black uppercase text-gray-400 mb-1">Deliver To</h4>
-                    <p class="text-xs font-bold text-gray-700 leading-relaxed">${d.customer.name} • ${d.customer.phone}<br>${d.address}</p>
+                    <p class="text-xs font-bold text-gray-700 leading-relaxed">${d.customer.name} • ${d.customer.phone}<br>📍 ${d.address}</p>
                 </div>`;
             document.getElementById('order-detail-view').classList.remove('hidden');
+        }
+
+        function fetchCurrentLocation() {
+            const btn = document.getElementById('geo-btn');
+            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Locating...`;
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const { latitude, longitude } = pos.coords;
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                        const data = await res.json();
+                        document.getElementById('manual-address').value = data.display_name;
+                    } catch (e) {
+                        document.getElementById('manual-address').value = `📍 GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
+                    }
+                    btn.innerHTML = `<i class="fa-solid fa-location-crosshairs mr-1"></i> Use Current Location`;
+                }, () => {
+                    alert("Location access denied.");
+                    btn.innerHTML = `<i class="fa-solid fa-location-crosshairs mr-1"></i> Use Current Location`;
+                });
+            }
         }
 
         async function cancelOrder() {
@@ -295,24 +290,12 @@
             }
         }
 
-        function fetchCurrentLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    document.getElementById('manual-address').value = `📍 GPS: ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)} (Kalyandurg)`;
-                }, () => alert("Location access denied."));
-            }
-        }
-
-        function toggleAddressBook() { document.getElementById('address-list-container').classList.toggle('hidden'); }
         function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); openHistory(); }
         function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
         function closeOrderDetail() { document.getElementById('order-detail-view').classList.add('hidden'); }
         function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
         function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
-        function filterItems(c) { 
-            document.getElementById('cat-title').innerText = c;
-            renderItems(c === 'All' ? allProducts : allProducts.filter(p => p.category === c)); 
-        }
+        function filterItems(c) { renderItems(c === 'All' ? allProducts : allProducts.filter(p => p.category === c)); }
 
         function openHistory() {
             db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
@@ -330,9 +313,11 @@
 
         function checkActiveOrder() {
             const id = localStorage.getItem('active_order');
-            if(id) { document.getElementById('live-status-bar').classList.remove('hidden'); document.getElementById('active-order-id').innerText = "#" + id; }
+            if(id) { 
+                document.getElementById('live-status-bar').classList.remove('hidden'); 
+                document.getElementById('active-order-id').innerText = "#" + id; 
+            }
         }
     </script>
 </body>
-    </html>
-    
+</html>
