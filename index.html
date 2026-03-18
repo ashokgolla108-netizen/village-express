@@ -12,7 +12,7 @@
         .blinkit-yellow { background-color: #F7CB45; }
         .auth-screen { display: none; position: fixed; inset: 0; background: white; z-index: 2000; padding: 24px; overflow-y: auto; }
         .auth-screen.active { display: block !important; }
-        input, textarea, select { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; background: #f8fafc; outline: none; margin-bottom: 10px; }
+        input, textarea, select { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; background: #f8fafc; outline: none; margin-bottom: 10px; font-weight: 600; }
         .btn-primary { background: #15803d; color: white; font-weight: 900; text-transform: uppercase; padding: 16px; border-radius: 16px; width: 100%; }
         #main-app { display: none; }
         #main-app.active { display: block; }
@@ -38,7 +38,7 @@
             <input type="date" id="reg-dob">
             <input type="password" id="reg-pass" placeholder="Password">
             <button onclick="handleRegister()" class="btn-primary">Create Account</button>
-            <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 uppercase mt-4">Back to Login</button>
+            <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 uppercase mt-4">Back</button>
         </div>
         <div id="forgot-view" class="hidden space-y-4">
             <h2 class="text-2xl font-black italic text-red-600">Recovery</h2>
@@ -63,31 +63,32 @@
 
         <div id="checkout-view" class="fixed inset-0 bg-white z-[150] hidden overflow-y-auto">
             <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white shadow-sm">
-                <div class="flex items-center gap-4"><button onclick="closeCheckout()"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black">Order Checkout</h2></div>
+                <div class="flex items-center gap-4"><button onclick="closeCheckout()"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black">Confirm Order</h2></div>
             </div>
-            <div class="p-5 space-y-6">
+            <div class="p-5 space-y-4">
                 <div id="checkout-items-list" class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100"></div>
-                
-                <div id="checkout-bill-details" class="px-2 border-t pt-4"></div>
+                <div id="checkout-bill-details" class="px-2 pb-4"></div>
 
-                <div class="space-y-4">
+                <div class="space-y-2">
+                    <p class="text-[10px] font-black uppercase text-slate-400">Recipient</p>
                     <input type="text" id="order-name" placeholder="Name">
                     <input type="tel" id="order-phone" placeholder="Mobile">
                     
                     <div class="flex justify-between items-center mt-4">
-                        <p class="text-[10px] font-black uppercase text-slate-400">Delivery Address</p>
-                        <button onclick="getCurrentLocation(this)" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded">Get GPS Address</button>
+                        <p class="text-[10px] font-black uppercase text-slate-400">Delivery Location</p>
+                        <button onclick="getPreciseGPS(this)" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded border border-blue-200">Fetch Precise GPS 🛰️</button>
                     </div>
-                    <input type="text" id="order-building" placeholder="House/Flat Number">
-                    <textarea id="order-address" placeholder="Area / Street / Village Details" rows="3"></textarea>
+                    <input type="text" id="order-building" placeholder="Door No / House Name">
+                    <textarea id="order-address" placeholder="Coordinates will appear here..." rows="2" readonly class="bg-gray-100 italic"></textarea>
                     
+                    <p class="text-[10px] font-black uppercase text-slate-400">Payment</p>
                     <select id="payment-method">
                         <option value="COD">Cash on Delivery (COD)</option>
-                        <option value="UPI">UPI Payment</option>
+                        <option value="UPI">UPI (GPay / PhonePe)</option>
                     </select>
 
                     <input type="hidden" id="gps-coords" value="">
-                    <button onclick="placeOrder()" class="btn-primary bg-green-700">Confirm Order</button>
+                    <button onclick="placeOrder()" class="btn-primary bg-green-700 shadow-xl mt-4">Place Order Now</button>
                 </div>
             </div>
         </div>
@@ -102,8 +103,8 @@
 
         <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
             <button onclick="openCheckout()" class="w-full bg-green-800 text-white flex justify-between p-5 rounded-2xl font-black shadow-2xl items-center">
-                <div class="text-left"><p id="cart-count" class="text-[9px] opacity-70 uppercase">0 ITEMS</p><p id="cart-total-bar" class="text-lg">₹0</p></div>
-                <span class="text-xs uppercase bg-white/20 px-3 py-1 rounded-lg">Proceed <i class="fa-solid fa-chevron-right ml-1"></i></span>
+                <div class="text-left"><p id="cart-count" class="text-[9px] opacity-70 uppercase tracking-widest">Total Items</p><p id="cart-total-bar" class="text-lg">₹0</p></div>
+                <span class="text-xs uppercase bg-white/20 px-3 py-1 rounded-lg">Check Bill <i class="fa-solid fa-chevron-right ml-1"></i></span>
             </button>
         </div>
     </div>
@@ -116,14 +117,7 @@
         let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
         let allProducts = [], cart = {};
 
-        // INITIALIZE APP LOGIC
-        window.onload = () => { 
-            if(!currentUser) {
-                showAuth('login'); 
-            } else {
-                initApp();
-            }
-        };
+        window.onload = () => { if(!currentUser) showAuth('login'); else initApp(); };
 
         function showAuth(v) { 
             document.getElementById('auth-overlay').classList.add('active');
@@ -134,9 +128,8 @@
 
         async function handleLogin() {
             const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
-            if(!p || !pw) return alert("Enter details");
             const s = await db.collection("users").where("phone","==",p).where("pass","==",pw).get();
-            if(s.empty) return alert("Invalid credentials");
+            if(s.empty) return alert("Wrong credentials");
             currentUser = s.docs[0].data();
             localStorage.setItem('user_session', JSON.stringify(currentUser));
             location.reload();
@@ -144,17 +137,15 @@
 
         async function handleRegister() {
             const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, d = document.getElementById('reg-dob').value, pw = document.getElementById('reg-pass').value;
-            if(!n || !p || !pw) return alert("Fill all fields");
             await db.collection("users").add({ name:n, phone:p, dob:d, pass:pw });
-            alert("Registration successful!");
-            showAuth('login');
+            alert("Registered! Please login."); showAuth('login');
         }
 
         async function handleForgot() {
             const p = document.getElementById('f-phone').value, n = document.getElementById('f-name').value, d = document.getElementById('f-dob').value;
             const s = await db.collection("users").where("phone","==",p).where("name","==",n).where("dob","==",d).get();
             if(s.empty) return alert("Not found");
-            alert("Your Password: " + s.docs[0].data().pass);
+            alert("Password: " + s.docs[0].data().pass);
         }
 
         function handleLogout() { localStorage.removeItem('user_session'); location.reload(); }
@@ -176,9 +167,9 @@
                 grid.innerHTML += `
                     <div class="bg-white border rounded-2xl p-3 shadow-sm">
                         <div class="aspect-square bg-slate-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-contain p-2"></div>
-                        <p class="font-black text-[11px] truncate uppercase">${p.name}</p>
+                        <p class="font-black text-[11px] truncate uppercase text-slate-500">${p.name}</p>
                         <div class="flex justify-between items-center mt-1">
-                            <p class="text-[13px] font-black">₹${p.price}</p>
+                            <p class="text-[14px] font-black">₹${p.price}</p>
                             ${qty === 0 ? `<button onclick="updateQty('${p.id}', 1)" class="border border-green-700 text-green-700 px-3 py-1 rounded-lg text-[10px] font-black">ADD</button>` :
                             `<div class="flex items-center gap-2 bg-green-700 text-white px-2 py-1 rounded-lg font-black text-[10px]">
                                 <button onclick="updateQty('${p.id}', -1)">-</button><span>${qty}</span><button onclick="updateQty('${p.id}', 1)">+</button>
@@ -214,7 +205,7 @@
                 sub += (item.price * item.qty);
                 listDiv.innerHTML += `
                     <div class="flex justify-between items-center">
-                        <p class="font-black text-xs uppercase">${item.name} <span class="text-gray-400 ml-1">x${item.qty}</span></p>
+                        <div><p class="font-black text-xs uppercase">${item.name}</p><p class="text-[9px] text-gray-400 font-bold">₹${item.price} x ${item.qty}</p></div>
                         <div class="flex items-center gap-3 bg-white border px-2 py-1 rounded-xl">
                             <button onclick="updateQty('${id}', -1)" class="text-red-500 font-black">-</button>
                             <span class="text-xs font-black">${item.qty}</span>
@@ -223,9 +214,9 @@
                     </div>`;
             });
             document.getElementById('checkout-bill-details').innerHTML = `
-                <div class="flex justify-between text-[11px] font-bold text-gray-400 uppercase"><span>Subtotal</span><span>₹${sub}</span></div>
-                <div class="flex justify-between text-[11px] font-bold text-gray-400 uppercase"><span>Handling</span><span>₹5</span></div>
-                <div class="flex justify-between text-xl font-black pt-2"><span>Total</span><span>₹${sub + 5}</span></div>`;
+                <div class="flex justify-between text-[11px] font-bold text-gray-400 uppercase mt-4"><span>Items Total</span><span>₹${sub}</span></div>
+                <div class="flex justify-between text-[11px] font-bold text-gray-400 uppercase"><span>Handling Fee</span><span>₹5</span></div>
+                <div class="flex justify-between text-xl font-black pt-2 border-t mt-2"><span>Grand Total</span><span>₹${sub + 5}</span></div>`;
         }
 
         function openCheckout() {
@@ -235,34 +226,33 @@
             document.getElementById('checkout-view').classList.remove('hidden');
         }
 
-        async function getCurrentLocation(btn) {
+        // IMPROVED LONGITUDE METHOD
+        function getPreciseGPS(btn) {
             if (navigator.geolocation) {
-                btn.innerHTML = "Locating...";
-                navigator.geolocation.getCurrentPosition(async (pos) => {
-                    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+                btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Pinging...";
+                navigator.geolocation.getCurrentPosition((pos) => {
+                    const lat = pos.coords.latitude.toFixed(6);
+                    const lon = pos.coords.longitude.toFixed(6);
                     document.getElementById('gps-coords').value = `${lat}, ${lon}`;
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18`);
-                        const data = await res.json();
-                        // Target exact village detail
-                        const v = data.address.village || data.address.suburb || data.address.hamlet || "Gonchireddypalli";
-                        const r = data.address.road || "";
-                        document.getElementById('order-address').value = `${v}, ${r}\n${data.display_name}`;
-                        btn.innerHTML = "Location Fixed ✅";
-                    } catch(e) { btn.innerHTML = "GPS Saved ✅"; }
-                }, null, { enableHighAccuracy: true });
+                    // Set both values directly into the display for the rider
+                    document.getElementById('order-address').value = `GPS: ${lat}, ${lon}\nLocation: Gonchireddypalli`;
+                    btn.innerHTML = "GPS Locked ✅";
+                }, (err) => {
+                    alert("Turn on GPS/Location and Refresh");
+                    btn.innerHTML = "GPS Failed ❌";
+                }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 });
             }
         }
 
         async function placeOrder() {
             const b = document.getElementById('order-building').value, a = document.getElementById('order-address').value;
-            if(!b || !a) return alert("Fill address");
+            if(!b || !a) return alert("Please Fetch GPS Location");
             let sub = 0; Object.values(cart).forEach(i => sub += i.price * i.qty);
             const order = {
                 orderId: "ORD" + Math.floor(100000 + Math.random() * 900000),
                 customer: { name: document.getElementById('order-name').value, phone: document.getElementById('order-phone').value, user_phone: currentUser.phone },
                 address: `${b}, ${a}`,
-                gps: document.getElementById('gps-coords').value || "14.5677, 77.0196",
+                gps: document.getElementById('gps-coords').value,
                 items: cart,
                 total: sub + 5,
                 payment: document.getElementById('payment-method').value,
@@ -270,18 +260,18 @@
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection("orders").add(order);
-            alert("Order Placed!");
+            alert("Order Success!");
             cart = {}; updateCartUI(); closeCheckout(); openProfile();
         }
 
         async function cancelOrder(id) {
-            if(confirm("Cancel this order?")) await db.collection("orders").doc(id).update({ status: "CANCELLED" });
+            if(confirm("Cancel order?")) await db.collection("orders").doc(id).update({ status: "CANCELLED" });
         }
 
         function loadHistory() {
             db.collection("orders").where("customer.user_phone", "==", currentUser.phone).onSnapshot(snap => {
                 const list = document.getElementById('history-list'); list.innerHTML = "";
-                if(snap.empty) { list.innerHTML = "<p class='text-center py-10 opacity-50'>No orders found</p>"; return; }
+                if(snap.empty) { list.innerHTML = "<div class='text-center py-20 opacity-30 font-black'>NO ORDERS FOUND</div>"; return; }
                 const docs = snap.docs.sort((a,b) => b.data().timestamp - a.data().timestamp);
                 docs.forEach(doc => {
                     const d = doc.data();
@@ -291,11 +281,11 @@
                         <div class="bg-white p-5 rounded-3xl border shadow-sm space-y-4">
                             <div class="flex justify-between items-start border-b pb-4">
                                 <div><p class="text-[9px] font-black text-gray-400">#${d.orderId}</p><p class="text-xl font-black ${d.status==='CANCELLED'?'text-red-500':'text-green-700'} uppercase italic">${d.status}</p></div>
-                                ${canCancel ? `<button onclick="cancelOrder('${doc.id}')" class="text-red-500 text-[10px] font-black uppercase">Cancel</button>` : ''}
+                                ${canCancel ? `<button onclick="cancelOrder('${doc.id}')" class="text-red-500 text-[10px] font-black uppercase border-b border-red-200">Cancel</button>` : ''}
                             </div>
                             <div class="py-2 border-b border-dashed">${items}</div>
-                            <div class="flex justify-between font-black text-lg"><span>Total Bill</span><span>₹${d.total}</span></div>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase italic">${d.address}</p>
+                            <div class="flex justify-between font-black text-lg"><span>Paid</span><span>₹${d.total}</span></div>
+                            <p class="text-[9px] text-gray-400 font-bold uppercase leading-tight">${d.address}</p>
                         </div>`;
                 });
             });
@@ -308,4 +298,3 @@
     </script>
 </body>
 </html>
-
