@@ -30,7 +30,7 @@
                 <i class="fa-solid fa-user"></i>
             </button>
         </div>
-        <div class="relative bg-white rounded-xl flex items-center px-4 py-3 shadow-sm border border-black/5">
+        <div class="relative bg-white rounded-xl flex items-center px-4 py-3 shadow-sm">
             <i class="fa-solid fa-search text-gray-400 mr-3"></i>
             <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search "milk" or "tomato"' class="w-full outline-none text-sm font-medium bg-transparent">
         </div>
@@ -52,10 +52,19 @@
                 <i class="fa-solid fa-basket-shopping text-gray-100 text-3xl"></i>
             </div>
         </div>
-
         <h3 id="view-title" class="font-black text-sm mb-4">Fresh Items</h3>
         <div id="items-grid" class="grid grid-cols-2 gap-3"></div>
     </main>
+
+    <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
+        <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center active:scale-95 transition-transform">
+            <div class="text-left leading-none">
+                <p id="cart-count" class="text-[9px] opacity-80 uppercase mb-1">0 ITEMS</p>
+                <p id="cart-total-bar" class="text-sm">₹0</p>
+            </div>
+            <span class="text-xs">PROCEED TO PAY <i class="fa-solid fa-chevron-right ml-1"></i></span>
+        </button>
+    </div>
 
     <div id="profile-view" class="fixed inset-0 bg-white z-[100] hidden overflow-y-auto">
         <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white">
@@ -63,10 +72,10 @@
             <h2 class="font-black">Your account</h2>
         </div>
         <div class="p-6 text-center bg-gradient-to-b from-yellow-50 to-white">
-            <div class="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl text-slate-500">
+            <div class="w-20 h-20 bg-slate-200 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl text-slate-500 shadow-sm">
                 <i class="fa-solid fa-user"></i>
             </div>
-            <p id="user-phone-display" class="text-xs font-black">User ID: 8328016917</p>
+            <p class="text-xs font-black">User: 8328016917</p>
         </div>
         <div class="grid grid-cols-3 gap-4 p-4">
             <div onclick="showHistory(); closeProfile();" class="bg-white border rounded-2xl p-4 text-center shadow-sm">
@@ -84,29 +93,54 @@
         </div>
         <div class="p-4 space-y-3">
             <h4 class="text-[10px] font-black text-gray-400 uppercase ml-2">Information</h4>
-            <div class="bg-white border rounded-2xl p-4">
-                <p class="text-xs font-black mb-1">Address Book</p>
-                <p id="saved-address-preview" class="text-[10px] text-gray-400 font-bold truncate">Set address during checkout</p>
+            <div class="bg-white border rounded-2xl p-4 flex justify-between items-center">
+                <div>
+                    <p class="text-xs font-black mb-1">Address Book</p>
+                    <p id="saved-address-preview" class="text-[10px] text-gray-400 font-bold truncate w-48">No address saved</p>
+                </div>
+                <i class="fa-solid fa-chevron-right text-gray-200"></i>
             </div>
         </div>
     </div>
 
-    <div id="history-view" class="fixed inset-0 bg-white z-[110] hidden overflow-y-auto">
+    <div id="checkout-view" class="fixed inset-0 bg-white z-[120] hidden overflow-y-auto">
+        <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white">
+            <button onclick="hideCheckout()"><i class="fa-solid fa-arrow-left"></i></button>
+            <h2 class="font-black">Order summary</h2>
+        </div>
+        <div class="p-4">
+            <h3 class="text-xs font-black text-gray-400 uppercase mb-4">Items in order</h3>
+            <div id="checkout-items" class="space-y-4 mb-8"></div>
+            
+            <div class="bg-gray-50 p-6 rounded-3xl mb-8">
+                <h3 class="font-black text-sm mb-4">Bill details</h3>
+                <div class="space-y-2 text-xs font-bold text-gray-600">
+                    <div class="flex justify-between"><span>Item Total</span><span id="bill-sub">₹0</span></div>
+                    <div class="flex justify-between"><span>Handling charge</span><span>+₹5</span></div>
+                    <div class="flex justify-between text-green-600"><span>Delivery charges</span><span>FREE</span></div>
+                    <div class="flex justify-between text-base font-black text-slate-900 pt-3 border-t border-dashed mt-2">
+                        <span>Bill total</span><span id="bill-grand">₹0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-gray-50 p-4 rounded-2xl mb-8 border border-gray-100">
+                <p class="text-[10px] font-black text-gray-400 uppercase mb-2">Deliver to</p>
+                <textarea id="manual-address" placeholder="Enter House No, Landmark, Area in Kalyandurg..." class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none" rows="3"></textarea>
+            </div>
+
+            <button onclick="initiatePayment()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest active:scale-95 transition-transform">
+                Place Order & Pay
+            </button>
+        </div>
+    </div>
+
+    <div id="history-view" class="fixed inset-0 bg-white z-[130] hidden overflow-y-auto">
         <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white">
             <button onclick="hideHistory()"><i class="fa-solid fa-arrow-left"></i></button>
             <h2 class="font-black">Your orders</h2>
         </div>
         <div id="history-list" class="p-4 space-y-4"></div>
-    </div>
-
-    <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-50 hidden">
-        <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center">
-            <div class="text-left">
-                <p id="cart-count" class="text-[10px] opacity-80 uppercase">0 ITEMS</p>
-                <p id="cart-total-bar" class="text-sm">₹0</p>
-            </div>
-            <span class="text-xs">PROCEED TO PAY <i class="fa-solid fa-chevron-right ml-1"></i></span>
-        </button>
     </div>
 
     <script>
@@ -119,14 +153,18 @@
         
         let allProducts = [];
         let cart = {};
+        let finalPayable = 0;
 
         window.onload = () => {
             db.collection("products").onSnapshot(snap => {
                 allProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderItems(allProducts);
             });
-            const saved = localStorage.getItem('last_address');
-            if(saved) document.getElementById('saved-address-preview').innerText = saved;
+            const savedAddr = localStorage.getItem('last_address');
+            if(savedAddr) {
+                document.getElementById('saved-address-preview').innerText = savedAddr;
+                document.getElementById('manual-address').value = savedAddr;
+            }
         };
 
         function renderItems(list) {
@@ -142,7 +180,7 @@
                             <p class="font-black text-[11px] h-8 overflow-hidden mb-1">${p.name}</p>
                             <div class="flex justify-between items-center mt-2">
                                 <p class="text-[12px] font-black">₹${p.price}</p>
-                                <button onclick="addToCart('${p.id}','${p.name}',${p.price})" class="border-2 border-green-600 text-green-700 px-4 py-1 rounded-lg text-[10px] font-black uppercase">Add</button>
+                                <button onclick="addToCart('${p.id}','${p.name}',${p.price}, '${p.image}')" class="border-2 border-green-600 text-green-700 px-4 py-1 rounded-lg text-[10px] font-black uppercase active:bg-green-600 active:text-white">Add</button>
                             </div>
                         </div>
                     </div>`;
@@ -152,17 +190,15 @@
         function filterItems(cat) {
             document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active-cat'));
             document.getElementById('cat-' + cat).classList.add('active-cat');
-            const filtered = cat === 'All' ? allProducts : allProducts.filter(p => p.category === cat);
-            renderItems(filtered);
+            renderItems(cat === 'All' ? allProducts : allProducts.filter(p => p.category === cat));
         }
 
         function handleSearch(val) {
-            const results = allProducts.filter(p => p.name.toLowerCase().includes(val.toLowerCase()));
-            renderItems(results);
+            renderItems(allProducts.filter(p => p.name.toLowerCase().includes(val.toLowerCase())));
         }
 
-        function addToCart(id, name, price) {
-            cart[id] = cart[id] ? { ...cart[id], qty: cart[id].qty + 1 } : { name, price, qty: 1 };
+        function addToCart(id, name, price, img) {
+            cart[id] = cart[id] ? { ...cart[id], qty: cart[id].qty + 1 } : { name, price, qty: 1, img };
             updateCartUI();
         }
 
@@ -170,10 +206,35 @@
             let sub = 0, count = 0;
             Object.values(cart).forEach(i => { sub += i.price * i.qty; count += i.qty; });
             document.getElementById('cart-bar').classList.toggle('hidden', count === 0);
-            document.getElementById('cart-total-bar').innerText = `₹${sub + 5}`; // Sub + Handling Fee
+            document.getElementById('cart-total-bar').innerText = `₹${sub + 5}`;
             document.getElementById('cart-count').innerText = `${count} ITEMS`;
+            finalPayable = sub + 5;
         }
 
+        function showCheckout() {
+            const list = document.getElementById('checkout-items');
+            list.innerHTML = "";
+            let sub = 0;
+            Object.values(cart).forEach(i => {
+                sub += (i.price * i.qty);
+                list.innerHTML += `
+                    <div class="flex justify-between items-center">
+                        <div class="flex gap-3 items-center">
+                            <img src="${i.img || ''}" class="w-10 h-10 bg-gray-100 rounded-lg object-contain">
+                            <div>
+                                <p class="text-xs font-black">${i.name}</p>
+                                <p class="text-[9px] text-gray-400 font-bold">${i.qty} x ₹${i.price}</p>
+                            </div>
+                        </div>
+                        <p class="text-xs font-black">₹${i.price * i.qty}</p>
+                    </div>`;
+            });
+            document.getElementById('bill-sub').innerText = `₹${sub}`;
+            document.getElementById('bill-grand').innerText = `₹${sub + 5}`;
+            document.getElementById('checkout-view').classList.remove('hidden');
+        }
+
+        function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
         function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); }
         function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
 
@@ -187,20 +248,33 @@
                     list.innerHTML += `
                         <div class="bg-white p-4 rounded-2xl border shadow-sm">
                             <div class="flex justify-between items-center mb-2">
-                                <span class="text-[10px] font-black text-green-600 uppercase italic">Arrived in 14 mins</span>
+                                <span class="text-[9px] font-black text-green-600 uppercase">Delivered</span>
                                 <span class="text-xs font-black">₹${d.total}</span>
                             </div>
-                            <p class="text-[9px] text-gray-400 font-bold mb-3">${d.orderId} • ${d.timestamp?.toDate().toDateString()}</p>
-                            <button class="w-full py-2 border-2 border-gray-100 rounded-xl text-[10px] font-black uppercase">Repeat Order</button>
+                            <p class="text-[9px] text-gray-400 font-bold mb-3">${d.orderId}</p>
+                            <button class="w-full py-2 bg-gray-50 rounded-xl text-[10px] font-black uppercase">Reorder</button>
                         </div>`;
                 });
             });
         }
         function hideHistory() { document.getElementById('history-view').classList.add('hidden'); }
 
+        function initiatePayment() {
+            const addr = document.getElementById('manual-address').value;
+            if(!addr) return alert("Please enter delivery address");
+            localStorage.setItem('last_address', addr);
+            const oid = "ORD" + Date.now().toString().slice(-8);
+            db.collection("orders").add({
+                orderId: oid, items: cart, total: finalPayable, address: addr,
+                status: "Pending", timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${finalPayable}&cu=INR&tn=${oid}`;
+            });
+        }
+
         function getLocation() {
-            navigator.geolocation.getCurrentPosition(pos => {
-                document.getElementById('addr-display').innerText = `Location Locked: ${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)}`;
+            navigator.geolocation.getCurrentPosition(p => {
+                document.getElementById('addr-display').innerText = "Location Fixed: Kalyandurg Area";
             });
         }
     </script>
