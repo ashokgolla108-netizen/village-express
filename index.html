@@ -12,7 +12,7 @@
         .blinkit-yellow { background-color: #F7CB45; }
         .auth-screen { display: none; position: fixed; inset: 0; background: white; z-index: 2000; padding: 24px; overflow-y: auto; }
         .auth-screen.active { display: block; }
-        input, textarea { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; background: #f8fafc; outline: none; }
+        input, textarea, select { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; background: #f8fafc; outline: none; }
         .btn-primary { background: #15803d; color: white; font-weight: 900; text-transform: uppercase; padding: 16px; border-radius: 16px; width: 100%; }
     </style>
 </head>
@@ -29,7 +29,6 @@
                 <button onclick="showAuth('forgot')" class="text-[10px] font-black text-red-500 uppercase">Forgot Password?</button>
             </div>
         </div>
-
         <div id="register-view" class="hidden space-y-4">
             <h2 class="text-2xl font-black italic">Register</h2>
             <input type="text" id="reg-name" placeholder="Full Name">
@@ -39,7 +38,6 @@
             <button onclick="handleRegister()" class="btn-primary">Create Account</button>
             <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 uppercase">Back</button>
         </div>
-
         <div id="forgot-view" class="hidden space-y-4">
             <h2 class="text-2xl font-black italic text-red-600">Recovery</h2>
             <input type="tel" id="f-phone" placeholder="Mobile Number">
@@ -66,11 +64,20 @@
         </div>
         <div class="p-5 space-y-6">
             <div id="checkout-summary" class="bg-gray-50 p-4 rounded-2xl space-y-2 text-sm font-bold"></div>
+            
             <input type="text" id="order-name" placeholder="Name">
             <input type="tel" id="order-phone" placeholder="Mobile">
+            
             <div class="flex justify-between items-center"><p class="text-[10px] font-black uppercase text-slate-400">Address</p><button onclick="getCurrentLocation(this)" class="text-[10px] font-black text-blue-600 uppercase">Get GPS</button></div>
             <input type="text" id="order-building" placeholder="Flat/Building Name">
-            <textarea id="order-address" placeholder="Area/Street/Landmark" rows="2"></textarea>
+            <textarea id="order-address" placeholder="Fetching current address..." rows="3"></textarea>
+            
+            <p class="text-[10px] font-black uppercase text-slate-400">Payment Method</p>
+            <select id="payment-method">
+                <option value="COD">Cash on Delivery (COD)</option>
+                <option value="UPI">Online / UPI</option>
+            </select>
+
             <input type="hidden" id="gps-coords" value="">
             <button onclick="placeOrder()" class="btn-primary bg-green-700">Confirm Order</button>
         </div>
@@ -128,7 +135,7 @@
             loadHistory();
         }
 
-        // Fixed Product Grid with +/- controls
+        // 2) Product Grid with +/- controls
         function renderItems(list) {
             const grid = document.getElementById('items-grid'); grid.innerHTML = "";
             list.forEach(p => {
@@ -166,17 +173,27 @@
             document.getElementById('order-name').value = currentUser.name;
             document.getElementById('order-phone').value = currentUser.phone;
             let sub = 0; Object.values(cart).forEach(i => sub += i.price * i.qty);
+            // 1) Summary restored
             document.getElementById('checkout-summary').innerHTML = `
-                <div class="flex justify-between text-gray-400 font-bold uppercase text-[10px]"><span>Total Bill</span><span>₹${sub+5}</span></div>`;
+                <div class="flex justify-between text-gray-500"><span>Subtotal</span><span>₹${sub}</span></div>
+                <div class="flex justify-between text-gray-500"><span>Handling Fee</span><span>₹5</span></div>
+                <div class="flex justify-between border-t pt-2 text-lg"><span>Total Bill</span><span>₹${sub+5}</span></div>`;
             document.getElementById('checkout-view').classList.remove('hidden');
         }
 
-        function getCurrentLocation(btn) {
+        // 3) Get GPS and fill information
+        async function getCurrentLocation(btn) {
             if (navigator.geolocation) {
                 btn.innerHTML = "...";
-                navigator.geolocation.getCurrentPosition((pos) => {
-                    document.getElementById('gps-coords').value = `${pos.coords.latitude}, ${pos.coords.longitude}`;
-                    btn.innerHTML = "GPS Saved ✅";
+                navigator.geolocation.getCurrentPosition(async (pos) => {
+                    const lat = pos.coords.latitude, lon = pos.coords.longitude;
+                    document.getElementById('gps-coords').value = `${lat}, ${lon}`;
+                    try {
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+                        const data = await res.json();
+                        document.getElementById('order-address').value = data.display_name;
+                        btn.innerHTML = "GPS Saved ✅";
+                    } catch(e) { btn.innerHTML = "Coords Saved ✅"; }
                 });
             }
         }
@@ -189,36 +206,55 @@
                 orderId: "ORD" + Math.floor(100000 + Math.random() * 900000),
                 customer: { name: document.getElementById('order-name').value, phone: document.getElementById('order-phone').value, user_phone: currentUser.phone },
                 address: `${b}, ${a}`,
-                gps: document.getElementById('gps-coords').value || "14.5677, 77.0196 (Kalyandurg)",
+                gps: document.getElementById('gps-coords').value || "14.5677, 77.0196",
                 items: cart,
                 total: sub + 5,
-                status: "ACCEPTED", // Setting to accepted for testing UI
+                payment: document.getElementById('payment-method').value,
+                status: "PENDING", // Initial Status
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
             await db.collection("orders").add(order); alert("Order Placed!"); cart = {}; updateCartUI(); closeCheckout(); openProfile();
         }
 
-        // Fixed History Logic to show full details
+        async function cancelOrder(id) {
+            if(confirm("Cancel this order?")) {
+                await db.collection("orders").doc(id).delete();
+            }
+        }
+
+        // 6) Order Flow Logic
         function loadHistory() {
-            db.collection("orders").where("customer.user_phone", "==", currentUser.phone).onSnapshot(snap => {
+            db.collection("orders").where("customer.user_phone", "==", currentUser.phone).orderBy("timestamp", "desc").onSnapshot(snap => {
                 const list = document.getElementById('history-list'); list.innerHTML = "";
                 if(snap.empty) { list.innerHTML = "<p class='text-center py-20 text-gray-400'>No Orders Found</p>"; return; }
                 snap.forEach(doc => {
                     const d = doc.data();
                     let itemsList = Object.values(d.items).map(i => `<div class="flex justify-between text-xs font-bold mb-1"><span>${i.name} x${i.qty}</span><span>₹${i.price * i.qty}</span></div>`).join('');
+                    
+                    // Logic for Rider info and location (Accepted or Reached)
+                    const showRider = (d.status === "ACCEPTED" || d.status === "REACHED");
+                    const canCancel = (d.status === "PENDING");
+
                     list.innerHTML += `
                         <div class="bg-white p-5 rounded-3xl border shadow-sm space-y-4">
                             <div class="flex justify-between items-start border-b pb-4">
-                                <div><p class="text-[9px] font-black text-gray-400 uppercase">ORDER ID: ${d.orderId}</p><p class="text-xl font-black text-green-700">${d.status}</p></div>
-                                <button class="text-red-500 text-[9px] font-black uppercase">Cancel Order</button>
+                                <div><p class="text-[9px] font-black text-gray-400 uppercase">ORDER ID: ${d.orderId}</p>
+                                <p class="text-xl font-black ${d.status==='DELIVERED'?'text-gray-400':'text-green-700'}">${d.status}</p>
+                                <p class="text-[10px] text-gray-400 font-bold italic">Payment: ${d.payment}</p></div>
+                                ${canCancel ? `<button onclick="cancelOrder('${doc.id}')" class="text-red-500 text-[9px] font-black uppercase">Cancel Order</button>` : ''}
                             </div>
                             <div class="py-2 border-b border-dashed">${itemsList}</div>
                             <div class="bg-gray-50 p-3 rounded-xl flex justify-between font-black"><span>Total Bill</span><span>₹${d.total}</span></div>
+                            
+                            ${showRider ? `
                             <div class="bg-blue-50 p-4 rounded-2xl flex justify-between items-center">
-                                <div><p class="text-[8px] font-black text-blue-500 uppercase">Rider</p><p class="text-xs font-black">Golla Ashok (8328016917)</p></div>
+                                <div><p class="text-[8px] font-black text-blue-500 uppercase">Rider Information</p><p class="text-xs font-black">Golla Ashok (8328016917)</p></div>
                                 <a href="tel:8328016917" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg"><i class="fa-solid fa-phone"></i></a>
                             </div>
-                            <div class="text-[10px] font-bold text-gray-500"><p class="uppercase text-[8px] opacity-60">Deliver To</p><p>${d.customer.name} • ${d.customer.phone}</p><p>📍 GPS: ${d.gps}</p></div>
+                            <div class="text-center"><a href="https://www.google.com/maps?q=${d.gps}" class="text-[10px] font-black text-blue-600 uppercase underline"><i class="fa-solid fa-location-dot mr-1"></i> View Live Location</a></div>
+                            ` : ''}
+
+                            <div class="text-[10px] font-bold text-gray-500"><p class="uppercase text-[8px] opacity-60">Deliver To</p><p>${d.customer.name} • ${d.customer.phone}</p><p>📍 ${d.address}</p></div>
                         </div>`;
                 });
             });
