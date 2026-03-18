@@ -12,6 +12,7 @@
         .blinkit-yellow { background-color: #F7CB45; }
         .hide-scroll::-webkit-scrollbar { display: none; }
         .cat-card:active { transform: scale(0.95); transition: 0.1s; }
+        .active-cat { border: 2px solid #15803d !important; background-color: #f0fdf4; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-900 pb-32">
@@ -72,8 +73,7 @@
             </div>
             <div onclick="filterItems('All')" class="cat-card text-center">
                 <div class="aspect-square bg-gray-50 rounded-2xl flex items-center justify-center mb-1 border border-gray-100">
-                    <i class="fa-solid fa-grid-2 text-gray-400"></i>
-                    <span class="font-black text-[10px] text-gray-400">ALL</span>
+                    <i class="fa-solid fa-border-all text-gray-400"></i>
                 </div>
                 <p class="text-[9px] font-black leading-tight">View All</p>
             </div>
@@ -82,7 +82,7 @@
 
     <main class="p-4">
         <div class="flex justify-between items-center mb-4">
-            <h3 id="cat-title" class="text-sm font-black italic">Bestsellers</h3>
+            <h3 id="cat-title" class="text-sm font-black italic">Fresh Items</h3>
         </div>
         <div id="items-grid" class="grid grid-cols-2 gap-3"></div>
     </main>
@@ -104,14 +104,21 @@
                 <div class="flex items-center gap-4 text-sm font-bold"><i class="fa-solid fa-location-dot text-gray-400"></i> Address Book</div>
                 <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
             </div>
-            <div class="p-4 flex items-center justify-between">
-                <div class="flex items-center gap-4 text-sm font-bold"><i class="fa-solid fa-heart text-gray-400"></i> Wishlist</div>
-                <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
-            </div>
         </div>
         <div id="history-list" class="bg-white p-4 space-y-4 mb-20">
             <h3 class="text-[10px] font-black uppercase text-gray-400">Past Orders</h3>
+        </div>
+    </div>
+
+    <div id="order-detail-view" class="fixed inset-0 bg-white z-[150] hidden overflow-y-auto">
+        <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
+            <div class="flex items-center gap-4">
+                <button onclick="closeOrderDetail()"><i class="fa-solid fa-arrow-left"></i></button>
+                <h2 class="font-black">Order summary</h2>
             </div>
+            <button id="cancel-btn-main" class="text-red-500 text-[10px] font-black uppercase hidden" onclick="cancelOrder()">Cancel Order</button>
+        </div>
+        <div id="detail-content" class="p-4 space-y-6"></div>
     </div>
 
     <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
@@ -127,7 +134,7 @@
     <div id="checkout-view" class="fixed inset-0 bg-white z-[120] hidden overflow-y-auto">
         <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white">
             <button onclick="hideCheckout()"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 class="font-black">Order Summary</h2>
+            <h2 class="font-black">Checkout</h2>
         </div>
         <div class="p-4 space-y-6 pb-20">
             <div id="checkout-items" class="space-y-4"></div>
@@ -135,17 +142,16 @@
                 <div class="space-y-2 text-xs font-bold text-gray-600">
                     <div class="flex justify-between"><span>Item Total</span><span id="bill-sub">₹0</span></div>
                     <div class="flex justify-between"><span>Handling charge</span><span>+₹5</span></div>
-                    <div class="flex justify-between text-green-600"><span>Delivery charges</span><span>FREE</span></div>
                     <div class="flex justify-between text-base font-black text-slate-900 pt-3 border-t mt-2">
-                        <span>Bill total</span><span id="bill-grand">₹0</span>
+                        <span>Total Bill</span><span id="bill-grand">₹0</span>
                     </div>
                 </div>
             </div>
             <div class="space-y-3">
                 <input type="text" id="cust-name" placeholder="Name" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none">
-                <textarea id="manual-address" placeholder="Address in Kalyandurg..." class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none" rows="2"></textarea>
+                <textarea id="manual-address" placeholder="Delivery Address..." class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none" rows="2"></textarea>
             </div>
-            <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase">Confirm Order</button>
+            <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase">Place Order</button>
         </div>
     </div>
 
@@ -154,7 +160,7 @@
         firebase.initializeApp(config);
         const db = firebase.firestore();
         
-        let allProducts = [], cart = {}, paymentMethod = "UPI";
+        let allProducts = [], cart = {}, currentViewingDocId = null;
 
         window.onload = () => {
             db.collection("products").onSnapshot(snap => {
@@ -224,11 +230,44 @@
             await db.collection("orders").add({
                 orderId: oid, items: cart, total: total, status: "CONFIRMED",
                 customer: { name: document.getElementById('cust-name').value, mobile: "8328016917" },
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(), address: document.getElementById('manual-address').value
             });
 
             localStorage.setItem('active_order', oid);
             window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${total}&cu=INR&tn=${oid}`;
+        }
+
+        async function showOrderDetail(docId) {
+            const doc = await db.collection("orders").doc(docId).get();
+            const d = doc.data();
+            currentViewingDocId = docId;
+            document.getElementById('cancel-btn-main').classList.toggle('hidden', d.status === 'CANCELLED');
+            
+            let itemsList = Object.values(d.items).map(i => `<div class="flex justify-between text-xs py-1 border-b border-dashed"><span>${i.name} (x${i.qty})</span><span>₹${i.price * i.qty}</span></div>`).join('');
+            
+            document.getElementById('detail-content').innerHTML = `
+                <div class="bg-white p-4 rounded-2xl border shadow-sm">
+                    <p class="text-[10px] font-black uppercase text-gray-400">Order ID: ${d.orderId}</p>
+                    <h3 class="text-xl font-black ${d.status === 'CANCELLED' ? 'text-red-600' : 'text-green-700'}">${d.status}</h3>
+                </div>
+                <div class="space-y-2">${itemsList}</div>
+                <div class="bg-gray-50 p-4 rounded-xl text-xs font-bold">
+                    <div class="flex justify-between"><span>Bill Total</span><span>₹${d.total}</span></div>
+                    <div class="flex justify-between mt-2 pt-2 border-t"><span>Delivery Address</span><span class="text-right w-1/2">${d.address || 'N/A'}</span></div>
+                </div>
+                <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex justify-between items-center">
+                    <div><p class="text-[9px] font-black text-blue-600 uppercase">Rider</p><p class="text-xs font-black">Golla Ashok (Test)</p></div>
+                    <a href="tel:8328016917" class="bg-blue-600 text-white p-2 rounded-full"><i class="fa-solid fa-phone"></i></a>
+                </div>`;
+            document.getElementById('order-detail-view').classList.remove('hidden');
+        }
+
+        async function cancelOrder() {
+            if(confirm("Cancel this order?")) {
+                await db.collection("orders").doc(currentViewingDocId).update({ status: "CANCELLED" });
+                localStorage.removeItem('active_order');
+                location.reload();
+            }
         }
 
         function openHistory() {
@@ -237,25 +276,22 @@
                 list.innerHTML = `<h3 class="text-[10px] font-black uppercase text-gray-400">Past Orders</h3>`;
                 snap.forEach(doc => {
                     const d = doc.data();
-                    list.innerHTML += `
-                        <div class="bg-gray-50 p-4 rounded-2xl border flex justify-between items-center shadow-sm">
-                            <div><p class="text-[10px] font-black text-green-600 uppercase">${d.status}</p><p class="text-xs font-black">₹${d.total} • ${d.orderId}</p></div>
-                            <a href="tel:8328016917" class="bg-white border text-green-700 text-[9px] px-3 py-2 rounded-xl font-black uppercase">Call Rider</a>
-                        </div>`;
+                    list.innerHTML += `<div onclick="showOrderDetail('${doc.id}')" class="bg-gray-50 p-4 rounded-2xl border flex justify-between items-center">
+                        <div><p class="text-[10px] font-black text-green-600 uppercase">${d.status}</p><p class="text-xs font-black">₹${d.total} • ${d.orderId}</p></div>
+                        <i class="fa-solid fa-chevron-right text-gray-300"></i>
+                    </div>`;
                 });
             });
         }
 
         function checkActiveOrder() {
             const id = localStorage.getItem('active_order');
-            if(id) {
-                document.getElementById('live-status-bar').classList.remove('hidden');
-                document.getElementById('active-order-id').innerText = "#" + id;
-            }
+            if(id) { document.getElementById('live-status-bar').classList.remove('hidden'); document.getElementById('active-order-id').innerText = "#" + id; }
         }
 
         function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); openHistory(); }
         function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
+        function closeOrderDetail() { document.getElementById('order-detail-view').classList.add('hidden'); }
         function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
         function filterItems(c) { 
             document.getElementById('cat-title').innerText = c;
