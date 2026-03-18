@@ -8,72 +8,69 @@
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .blinkit-yellow { background-color: #F7CB45; }
+        input { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; background: #f8fafc; outline: none; margin-bottom: 10px; font-weight: 600; }
+    </style>
 </head>
-<body class="bg-gray-50 text-slate-900 pb-32">
+<body class="bg-gray-50 pb-32">
 
     <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-6 hidden">
         <div id="login-view" class="space-y-6 pt-10 text-center">
             <h1 class="text-4xl font-black italic text-green-800">Village Express</h1>
-            <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-4 border rounded-xl">
-            <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 border rounded-xl">
+            <input type="tel" id="login-phone" placeholder="Mobile Number">
+            <input type="password" id="login-pass" placeholder="Password">
             <button onclick="handleLogin()" class="w-full bg-green-700 text-white p-4 rounded-xl font-black">LOGIN</button>
-            <button onclick="showAuth('register')" class="text-xs font-bold text-blue-600 uppercase">Create Account</button>
+            <button onclick="showAuth('register')" class="text-xs font-bold text-blue-600 mt-4 uppercase">Register Account</button>
         </div>
         <div id="register-view" class="hidden space-y-4">
-            <h2 class="text-2xl font-black italic">Register</h2>
-            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 border rounded-xl">
-            <input type="tel" id="reg-phone" placeholder="Mobile Number" class="w-full p-4 border rounded-xl">
-            <input type="password" id="reg-pass" placeholder="Password" class="w-full p-4 border rounded-xl">
+            <h2 class="text-2xl font-black italic text-center">Join Village Express</h2>
+            <input type="text" id="reg-name" placeholder="Full Name">
+            <input type="tel" id="reg-phone" placeholder="Mobile Number">
+            <input type="password" id="reg-pass" placeholder="Password">
             <button onclick="handleRegister()" class="w-full bg-green-700 text-white p-4 rounded-xl font-black">SIGN UP</button>
-            <button onclick="showAuth('login')" class="w-full text-xs font-bold text-gray-400 mt-4 uppercase">Back</button>
+            <button onclick="showAuth('login')" class="w-full text-xs font-bold text-gray-400 mt-4 uppercase text-center">Back</button>
         </div>
     </div>
 
     <div id="main-app">
-        <header class="bg-[#F7CB45] p-4 sticky top-0 z-50 shadow-sm">
-            <div class="flex items-center justify-between mb-3">
-                <h1 class="text-lg font-black italic">Village Express</h1>
-                <button onclick="openProfile()" class="bg-white/30 p-2 rounded-full w-10 h-10"><i class="fa-solid fa-user"></i></button>
-            </div>
-            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder="Search items..." class="rounded-xl border-none shadow-inner bg-white/90 p-3 w-full outline-none">
+        <header class="blinkit-yellow p-4 sticky top-0 z-50 shadow-sm flex justify-between items-center">
+            <h1 class="text-lg font-black italic">Village Express</h1>
+            <button onclick="openProfile()" class="bg-white/30 p-2 rounded-full w-10 h-10"><i class="fa-solid fa-user"></i></button>
         </header>
 
         <main class="p-4"><div id="items-grid" class="grid grid-cols-2 gap-4"></div></main>
 
         <div id="checkout-view" class="fixed inset-0 bg-white z-[150] hidden overflow-y-auto p-5">
-            <div class="flex items-center gap-4 mb-6"><button onclick="closeCheckout()"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black">Confirm Order</h2></div>
+            <div class="flex items-center gap-4 mb-6"><button onclick="closeCheckout()"><i class="fa-solid fa-arrow-left text-xl"></i></button><h2 class="font-black text-xl">Confirm Order</h2></div>
+            <div id="checkout-items-list" class="space-y-2 mb-6 border-b pb-4"></div>
             
-            <div id="checkout-items-list" class="space-y-2 bg-gray-50 p-4 rounded-2xl mb-4 border"></div>
+            <p class="text-[10px] font-black uppercase text-gray-400 mb-2">Delivery Location</p>
+            <button onclick="getPreciseGPS(this)" class="w-full text-xs font-black text-blue-600 bg-blue-50 py-4 rounded-xl border border-blue-200 mb-4">📍 FETCH LIVE GPS LOCATION</button>
+            <input type="text" id="order-building" placeholder="Door No / Building Name / Landmark">
+            <textarea id="order-address" placeholder="GPS Coordinates" readonly class="bg-gray-50 italic text-[10px] h-12"></textarea>
             
-            <div class="space-y-4">
-                <p class="text-[10px] font-black uppercase text-slate-400">Delivery Details</p>
-                <button onclick="getPreciseGPS(this)" class="w-full text-xs font-black text-blue-600 bg-blue-50 py-4 rounded-xl border border-blue-200">📍 CLICK TO FETCH GPS LOCATION</button>
-                <input type="text" id="order-building" placeholder="Door No / House Name" class="w-full p-4 border rounded-xl">
-                <textarea id="order-address" placeholder="Coordinates will appear here..." rows="2" readonly class="w-full p-4 border rounded-xl bg-gray-100 italic text-xs"></textarea>
-                
-                <p class="text-[10px] font-black uppercase text-slate-400">Payment Method</p>
-                <select id="payment-method" class="w-full p-4 border rounded-xl bg-white font-bold">
-                    <option value="COD">Cash on Delivery (COD)</option>
-                    <option value="UPI">UPI / Online</option>
-                </select>
-
-                <div id="final-bill" class="border-t pt-4 space-y-2 font-bold text-sm"></div>
-                <button onclick="placeOrder()" class="w-full bg-green-800 text-white p-5 rounded-2xl font-black text-lg shadow-xl">PLACE ORDER</button>
+            <div class="mt-4 p-4 bg-slate-50 rounded-2xl border mb-6">
+                <div class="flex justify-between font-bold text-sm"><span>Subtotal</span><span id="bill-sub">₹0</span></div>
+                <div class="flex justify-between font-bold text-sm text-green-600"><span>Delivery Fee</span><span>₹5</span></div>
+                <div class="flex justify-between font-black text-lg border-t mt-2 pt-2"><span>Total</span><span id="bill-total">₹0</span></div>
             </div>
+            
+            <button onclick="placeOrder()" class="w-full bg-green-800 text-white p-5 rounded-2xl font-black text-lg">PLACE ORDER</button>
         </div>
 
         <div id="profile-view" class="fixed inset-0 bg-gray-50 z-[100] hidden overflow-y-auto">
             <div class="p-4 border-b flex items-center justify-between bg-white sticky top-0">
                 <div class="flex items-center gap-4"><button onclick="closeProfile()"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black italic">My Orders</h2></div>
-                <button onclick="handleLogout()" class="text-red-500 text-[10px] font-black uppercase">Logout</button>
+                <button onclick="handleLogout()" class="text-red-500 font-black text-xs">LOGOUT</button>
             </div>
             <div id="history-list" class="p-4 space-y-4"></div>
         </div>
 
         <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
             <button onclick="openCheckout()" class="w-full bg-green-800 text-white flex justify-between p-5 rounded-2xl font-black shadow-2xl items-center">
-                <div class="text-left"><p id="cart-count" class="text-[9px] opacity-70">0 ITEMS</p><p id="cart-total-bar" class="text-lg">₹0</p></div>
-                <span class="text-xs uppercase bg-white/20 px-3 py-1 rounded-lg">Proceed <i class="fa-solid fa-chevron-right ml-1"></i></span>
+                <div class="text-left"><p id="cart-item-count" class="text-[9px] opacity-70 uppercase tracking-widest">0 Items</p><p id="cart-total-bar" class="text-lg">₹0</p></div>
+                <span class="text-xs uppercase bg-white/20 px-3 py-1 rounded-lg">View Cart <i class="fa-solid fa-chevron-right ml-1"></i></span>
             </button>
         </div>
     </div>
@@ -84,151 +81,137 @@
         const db = firebase.firestore();
 
         let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
-        let allProducts = [], cart = {};
+        let cart = {};
 
         window.onload = () => { if(!currentUser) showAuth('login'); else initApp(); };
-
-        function showAuth(v) { 
-            document.getElementById('auth-overlay').style.display = 'block';
-            document.getElementById('login-view').classList.toggle('hidden', v !== 'login');
-            document.getElementById('register-view').classList.toggle('hidden', v !== 'register');
-        }
-
-        async function handleLogin() {
-            const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
-            const s = await db.collection("users").where("phone","==",p).where("pass","==",pw).get();
-            if(s.empty) return alert("Login Failed");
-            currentUser = s.docs[0].data();
-            localStorage.setItem('user_session', JSON.stringify(currentUser));
-            location.reload();
-        }
-
-        async function handleRegister() {
-            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, pw = document.getElementById('reg-pass').value;
-            await db.collection("users").add({ name:n, phone:p, pass:pw });
-            alert("Success!"); showAuth('login');
-        }
-
-        function handleLogout() { localStorage.removeItem('user_session'); location.reload(); }
 
         function initApp() {
             document.getElementById('auth-overlay').style.display = 'none';
             db.collection("products").onSnapshot(snap => { 
-                allProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-                renderItems(allProducts); 
+                const grid = document.getElementById('items-grid'); grid.innerHTML = "";
+                snap.docs.forEach(doc => {
+                    const p = doc.data(); p.id = doc.id;
+                    grid.innerHTML += `
+                        <div class="bg-white border rounded-3xl p-3 shadow-sm">
+                            <img src="${p.image}" class="w-full aspect-square object-contain mb-2 p-2">
+                            <p class="font-black text-[10px] uppercase text-gray-500 truncate">${p.name}</p>
+                            <div class="flex justify-between items-center mt-1">
+                                <p class="font-black text-sm">₹${p.price}</p>
+                                <button onclick="addToCart('${p.id}', '${p.name}', ${p.price})" class="border-2 border-green-700 text-green-700 px-3 py-1 rounded-xl text-[10px] font-black">ADD</button>
+                            </div>
+                        </div>`;
+                });
             });
             loadHistory();
         }
 
-        function renderItems(list) {
-            const grid = document.getElementById('items-grid'); grid.innerHTML = "";
-            list.forEach(p => {
-                const qty = cart[p.id]?.qty || 0;
-                grid.innerHTML += `
-                    <div class="bg-white border rounded-2xl p-3 shadow-sm">
-                        <div class="aspect-square bg-slate-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-contain p-2"></div>
-                        <p class="font-black text-[11px] truncate uppercase text-slate-600">${p.name}</p>
-                        <div class="flex justify-between items-center mt-1">
-                            <p class="text-[14px] font-black">₹${p.price}</p>
-                            ${qty === 0 ? `<button onclick="updateQty('${p.id}', 1)" class="border border-green-700 text-green-700 px-3 py-1 rounded-lg text-[10px] font-black">ADD</button>` :
-                            `<div class="flex items-center gap-2 bg-green-700 text-white px-2 py-1 rounded-lg font-black text-[10px]">
-                                <button onclick="updateQty('${p.id}', -1)">-</button><span>${qty}</span><button onclick="updateQty('${p.id}', 1)">+</button>
-                            </div>`}
-                        </div>
-                    </div>`;
-            });
-        }
-
-        function updateQty(id, change) {
-            const p = allProducts.find(x => x.id === id);
-            if (!cart[id]) cart[id] = { name: p.name, price: Number(p.price), qty: 0 };
-            cart[id].qty += change; 
-            if (cart[id].qty <= 0) delete cart[id];
-            updateCartUI(); renderItems(allProducts);
-        }
+        function addToCart(id, name, price) { cart[id] = { name, price, qty: 1 }; updateCartUI(); }
 
         function updateCartUI() {
-            let sub = 0, count = 0; Object.values(cart).forEach(i => { sub += i.price * i.qty; count += i.qty; });
+            let total = 0, count = 0; Object.values(cart).forEach(i => { total += i.price; count++; });
             document.getElementById('cart-bar').classList.toggle('hidden', count === 0);
-            document.getElementById('cart-total-bar').innerText = `₹${sub + 5}`;
-            document.getElementById('cart-count').innerText = `${count} ITEMS`;
+            document.getElementById('cart-total-bar').innerText = `₹${total + 5}`;
+            document.getElementById('cart-item-count').innerText = `${count} Items`;
         }
 
         function getPreciseGPS(btn) {
-            btn.innerText = "Finding you...";
+            btn.innerText = "Accessing GPS...";
             navigator.geolocation.getCurrentPosition(pos => {
-                const lat = pos.coords.latitude.toFixed(6), lon = pos.coords.longitude.toFixed(6);
-                document.getElementById('order-address').value = `GPS: ${lat}, ${lon}`;
-                btn.innerText = "GPS Fixed ✅";
-            }, err => alert("Enable Location Permissions"), { enableHighAccuracy: true });
+                document.getElementById('order-address').value = `GPS: ${pos.coords.latitude}, ${pos.coords.longitude}`;
+                btn.innerText = "GPS Location Locked ✅";
+            }, null, {enableHighAccuracy: true});
         }
 
         async function placeOrder() {
             const b = document.getElementById('order-building').value, a = document.getElementById('order-address').value;
-            const pay = document.getElementById('payment-method').value;
-            if(!b || !a) return alert("Add Address and GPS Location");
-            
-            let sub = 0; Object.values(cart).forEach(i => sub += i.price * i.qty);
+            if(!b || !a) return alert("Please provide building name and fetch GPS location.");
+            let total = 5; Object.values(cart).forEach(i => total += i.price);
             
             await db.collection("orders").add({
-                orderId: "VE" + Math.floor(1000 + Math.random() * 9000),
-                customer: { name: currentUser.name, phone: currentUser.phone, user_phone: currentUser.phone },
+                orderId: "VE" + Math.floor(1000 + Math.random()*8999),
+                customer: currentUser,
                 address: `${b}, ${a}`,
                 items: cart,
-                total: sub + 5,
-                payment: pay,
+                total: total,
                 status: "PENDING",
-                riderId: null, // Clear for now
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            alert("Order Sent!"); cart = {}; updateCartUI(); closeCheckout(); openProfile();
+            cart = {}; updateCartUI(); closeCheckout(); openProfile();
+        }
+
+        async function cancelOrder(id) {
+            if(confirm("Are you sure you want to cancel?")) {
+                await db.collection("orders").doc(id).update({ status: "CANCELLED" });
+            }
         }
 
         function loadHistory() {
-            db.collection("orders").where("customer.user_phone", "==", currentUser.phone).onSnapshot(snap => {
+            db.collection("orders").where("customer.phone", "==", currentUser.phone).onSnapshot(snap => {
                 const list = document.getElementById('history-list'); list.innerHTML = "";
-                snap.docs.forEach(doc => {
+                const sorted = snap.docs.sort((a,b) => b.data().timestamp - a.data().timestamp);
+                
+                sorted.forEach(doc => {
                     const d = doc.data();
                     const isAccepted = (d.status === "ACCEPTED");
+                    
                     list.innerHTML += `
-                        <div class="bg-white p-5 rounded-3xl border shadow-sm mb-4">
-                            <div class="flex justify-between items-center mb-3">
-                                <span class="text-[10px] font-black text-gray-400">#${d.orderId}</span>
-                                <span class="font-black text-green-700 italic">${d.status}</span>
+                        <div class="bg-white p-5 rounded-[32px] border shadow-sm mb-4">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-[10px] font-black text-gray-300 uppercase">#${d.orderId}</span>
+                                <span class="font-black italic uppercase ${d.status === 'CANCELLED' ? 'text-red-500' : 'text-green-700'}">${d.status}</span>
                             </div>
+
                             ${isAccepted ? `
-                                <div class="bg-blue-50 p-4 rounded-2xl mb-3 border border-blue-100 flex justify-between items-center">
-                                    <div><p class="text-[10px] font-black text-blue-400">RIDER ASSIGNED</p><p class="font-black text-sm">${d.riderName}</p></div>
-                                    <button onclick="trackRider('${d.riderId}')" class="bg-blue-600 text-white p-2 px-4 rounded-xl text-[10px] font-black">TRACK LIVE</button>
+                                <div class="bg-blue-50 p-4 rounded-2xl mb-4 border border-blue-100">
+                                    <p class="text-[9px] font-black text-blue-400 uppercase mb-2">Assigned Rider</p>
+                                    <div class="flex justify-between items-center">
+                                        <div><p class="font-black text-slate-800">${d.riderName}</p><p class="text-[10px] font-bold text-slate-500">${d.riderPhone}</p></div>
+                                        <div class="flex gap-2">
+                                            <a href="tel:${d.riderPhone}" class="w-10 h-10 bg-white rounded-full flex items-center justify-center text-blue-600 shadow-sm"><i class="fa-solid fa-phone"></i></a>
+                                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${d.riderLat},${d.riderLng}', '_blank')" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest">Live Track</button>
+                                        </div>
+                                    </div>
                                 </div>
                             ` : ''}
-                            <p class="text-xs font-bold text-gray-500">${d.address}</p>
-                            <div class="mt-2 text-sm font-black">Total: ₹${d.total} (${d.payment})</div>
+
+                            <p class="text-xs font-bold text-gray-500 mb-2 leading-relaxed">${d.address}</p>
+                            <p class="text-xs font-black">Total: ₹${d.total}</p>
+                            
+                            ${d.status === 'PENDING' ? `
+                                <button onclick="cancelOrder('${doc.id}')" class="mt-4 w-full border border-red-100 text-red-500 py-3 rounded-2xl text-[10px] font-black uppercase">Cancel Order</button>
+                            ` : ''}
                         </div>`;
                 });
             });
         }
 
-        async function trackRider(riderId) {
-            const r = await db.collection("riders").doc(riderId).get();
-            const data = r.data();
-            window.open(`https://www.google.com/maps/search/?api=1&query=${data.lat},${data.lng}`, '_blank');
+        // UI HELPERS
+        function showAuth(v) { document.getElementById('auth-overlay').style.display = 'block'; }
+        async function handleLogin() {
+            const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
+            const s = await db.collection("users").where("phone","==",p).where("pass","==",pw).get();
+            if(s.empty) return alert("User not found");
+            currentUser = s.docs[0].data();
+            localStorage.setItem('user_session', JSON.stringify(currentUser));
+            location.reload();
         }
-
+        async function handleRegister() {
+            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, pw = document.getElementById('reg-pass').value;
+            await db.collection("users").add({ name:n, phone:p, pass:pw });
+            alert("Registration Successful!"); showAuth('login');
+        }
+        function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); }
+        function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
         function openCheckout() {
+            let sub = 0; Object.values(cart).forEach(i => sub += i.price);
+            document.getElementById('bill-sub').innerText = `₹${sub}`;
+            document.getElementById('bill-total').innerText = `₹${sub+5}`;
             const listDiv = document.getElementById('checkout-items-list'); listDiv.innerHTML = "";
-            let sub = 0;
-            Object.values(cart).forEach(i => {
-                sub += (i.price * i.qty);
-                listDiv.innerHTML += `<div class="flex justify-between font-bold text-xs uppercase"><span>${i.name} x${i.qty}</span><span>₹${i.price * i.qty}</span></div>`;
-            });
-            document.getElementById('final-bill').innerHTML = `<div class="flex justify-between text-gray-400"><span>Items</span><span>₹${sub}</span></div><div class="flex justify-between text-gray-400"><span>Delivery</span><span>₹5</span></div><div class="flex justify-between text-lg pt-2"><span>Total</span><span>₹${sub+5}</span></div>`;
+            Object.values(cart).forEach(i => listDiv.innerHTML += `<div class='flex justify-between font-bold text-xs uppercase'><span>${i.name}</span><span>₹${i.price}</span></div>`);
             document.getElementById('checkout-view').classList.remove('hidden');
         }
         function closeCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
-        function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); }
-        function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
-        function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
+        function handleLogout() { localStorage.removeItem('user_session'); location.reload(); }
     </script>
 </body>
 </html>
