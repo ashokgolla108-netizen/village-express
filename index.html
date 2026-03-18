@@ -11,163 +11,229 @@
     <style>
         .blinkit-yellow { background-color: #F7CB45; }
         .hide-scroll::-webkit-scrollbar { display: none; }
-        @keyframes pulse-green { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-        .live-dot { animation: pulse-green 1.5s infinite; }
+        .auth-screen { display: none; position: fixed; inset: 0; background: white; z-index: 2000; padding: 24px; overflow-y: auto; }
+        .auth-screen.active { display: block; }
+        input, textarea { border: 1px solid #e2e8f0; }
+        input:focus { border-color: #15803d; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-900 pb-32">
+
+    <div id="auth-overlay" class="auth-screen">
+        <div id="login-view" class="space-y-6 pt-10">
+            <div class="text-center mb-10">
+                <h1 class="text-4xl font-black italic text-slate-900">Village Express</h1>
+                <p class="text-xs font-bold text-gray-400 uppercase tracking-widest mt-2">Kalyandurg's Quickest Delivery</p>
+            </div>
+            <div class="space-y-4">
+                <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+                <input type="password" id="login-pass" placeholder="Password" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+                <button onclick="handleLogin()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-lg uppercase tracking-wider active:scale-95 transition-all">Login</button>
+            </div>
+            <div class="flex justify-between items-center px-2">
+                <button onclick="showAuth('register')" class="text-[10px] font-black uppercase text-blue-600">Create Account</button>
+                <button onclick="showAuth('forgot')" class="text-[10px] font-black uppercase text-red-500">Forgot Password?</button>
+            </div>
+        </div>
+
+        <div id="register-view" class="hidden space-y-5">
+            <h2 class="text-2xl font-black mb-1">Create Account</h2>
+            <p class="text-[10px] font-black text-gray-400 uppercase mb-6">Join our delivery network</p>
+            <input type="text" id="reg-name" placeholder="Full Name" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+            <input type="tel" id="reg-phone" placeholder="Mobile Number" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+            <div class="space-y-1">
+                <label class="text-[9px] font-black text-gray-400 uppercase ml-2">Date of Birth</label>
+                <input type="date" id="reg-dob" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+            </div>
+            <input type="password" id="reg-pass" placeholder="Create Password" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+            <button onclick="handleRegister()" class="w-full bg-slate-900 text-white font-black py-5 rounded-2xl shadow-lg uppercase tracking-wider">Register Now</button>
+            <button onclick="showAuth('login')" class="w-full text-xs font-black uppercase text-gray-400 py-2">Already have an account? Login</button>
+        </div>
+
+        <div id="forgot-view" class="hidden space-y-5">
+            <h2 class="text-2xl font-black mb-1">Recover Password</h2>
+            <p class="text-[10px] font-black text-gray-400 uppercase mb-6">Enter details exactly as registered</p>
+            <input type="tel" id="f-phone" placeholder="Registered Mobile Number" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+            <input type="text" id="f-name" placeholder="Full Name" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+            <input type="date" id="f-dob" class="w-full bg-gray-50 p-4 rounded-2xl outline-none font-bold text-sm">
+            <button onclick="handleForgot()" class="w-full bg-red-600 text-white font-black py-5 rounded-2xl shadow-lg uppercase">Verify & Show Password</button>
+            <button onclick="showAuth('login')" class="w-full text-xs font-black uppercase text-gray-400 py-2">Back to Login</button>
+        </div>
+    </div>
 
     <header class="blinkit-yellow p-4 sticky top-0 z-50 shadow-sm">
         <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-location-dot"></i>
-                <div class="overflow-hidden">
+                <div>
                     <h1 class="text-lg font-black italic leading-none">Village Express</h1>
-                    <p class="text-[10px] font-bold truncate w-32">Kalyandurg, Anantapur</p>
+                    <p class="text-[9px] font-black uppercase opacity-60">Kalyandurg</p>
                 </div>
             </div>
-            <button onclick="openProfile()" class="bg-white/20 p-2 rounded-full w-10 h-10 flex items-center justify-center shadow-inner">
+            <button onclick="openProfile()" class="bg-white/30 p-2 rounded-full w-10 h-10 flex items-center justify-center border border-white/20">
                 <i class="fa-solid fa-user"></i>
             </button>
         </div>
-        <div class="relative bg-white rounded-xl flex items-center px-4 py-3 shadow-sm">
+        <div class="relative bg-white rounded-2xl flex items-center px-4 py-3 shadow-sm border border-black/5">
             <i class="fa-solid fa-search text-gray-400 mr-3"></i>
-            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search items...' class="w-full outline-none text-sm font-medium bg-transparent">
+            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search fresh items...' class="w-full outline-none text-sm font-medium bg-transparent">
         </div>
     </header>
 
-    <div id="live-status-bar" class="hidden m-4 p-4 bg-white border-2 border-green-500 rounded-2xl flex items-center justify-between shadow-md">
-        <div class="flex items-center gap-3">
-            <i class="fa-solid fa-truck-fast text-green-600 text-xl live-dot"></i>
-            <div>
-                <p class="text-[10px] font-black uppercase text-green-700">Order is Active</p>
-                <p id="active-order-id" class="text-[9px] text-gray-400 font-bold">#ORD...</p>
+    <div id="profile-view" class="fixed inset-0 bg-gray-50 z-[100] hidden overflow-y-auto">
+        <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white z-10">
+            <div class="flex items-center gap-4">
+                <button onclick="closeProfile()"><i class="fa-solid fa-arrow-left"></i></button>
+                <h2 class="font-black">My Account</h2>
             </div>
+            <button onclick="handleLogout()" class="text-red-500 text-[10px] font-black uppercase">Logout</button>
         </div>
-        <button onclick="openProfile()" class="text-[9px] font-black bg-green-100 text-green-700 px-3 py-1 rounded-full uppercase">Details</button>
-    </div>
+        <div class="p-8 text-center bg-white mb-3">
+            <div class="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-4 flex items-center justify-center text-3xl text-slate-300 border-4 border-slate-50 shadow-inner">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <p id="profile-name-txt" class="text-lg font-black italic"></p>
+            <p id="profile-number" class="text-xs font-bold text-gray-400"></p>
+        </div>
 
-    <div class="flex gap-3 p-4 overflow-x-auto hide-scroll bg-white shadow-sm">
-        <button onclick="filterItems('All')" class="px-6 py-2 rounded-full border text-[10px] font-black uppercase bg-green-50 border-green-200">All</button>
-        <button onclick="filterItems('Vegetables')" class="px-6 py-2 rounded-full border text-[10px] font-black uppercase">Vegetables</button>
-        <button onclick="filterItems('Fruits')" class="px-6 py-2 rounded-full border text-[10px] font-black uppercase">Fruits</button>
-        <button onclick="filterItems('Dairy')" class="px-6 py-2 rounded-full border text-[10px] font-black uppercase">Dairy & Milk</button>
+        <div id="history-list" class="bg-white p-5 space-y-4">
+            <h3 class="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">Your Orders</h3>
+            </div>
     </div>
 
     <main class="p-4">
-        <h3 id="cat-title" class="text-sm font-black italic mb-4">Fresh Items</h3>
-        <div id="items-grid" class="grid grid-cols-2 gap-3"></div>
+        <div id="items-grid" class="grid grid-cols-2 gap-4"></div>
     </main>
 
-    <div id="profile-view" class="fixed inset-0 bg-gray-50 z-[100] hidden overflow-y-auto">
-        <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white z-10">
-            <button onclick="closeProfile()"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 class="font-black">Account Details</h2>
-        </div>
-        <div class="p-6 text-center bg-white mb-2">
-            <div class="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl text-slate-400">
-                <i class="fa-solid fa-user"></i>
-            </div>
-            <p id="profile-number" class="text-[12px] font-bold text-gray-400">8328016917</p>
-        </div>
-        <div id="history-list" class="bg-white p-4 space-y-4 mb-20">
-            <h3 class="text-[10px] font-black uppercase text-gray-400">Past Orders</h3>
-        </div>
-    </div>
-
-    <div id="order-detail-view" class="fixed inset-0 bg-white z-[150] hidden overflow-y-auto">
-        <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white shadow-sm">
-            <div class="flex items-center gap-4">
-                <button onclick="closeOrderDetail()"><i class="fa-solid fa-arrow-left"></i></button>
-                <h2 class="font-black">Order Summary</h2>
-            </div>
-            <button id="cancel-btn-main" class="text-red-500 text-[10px] font-black uppercase hidden" onclick="cancelOrder()">Cancel Order</button>
-        </div>
-        <div id="detail-content" class="p-4 space-y-6"></div>
-    </div>
-
     <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
-        <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center">
+        <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-5 rounded-2xl font-black shadow-2xl items-center">
             <div class="text-left leading-none">
-                <p id="cart-count" class="text-[9px] mb-1">0 ITEMS</p>
-                <p id="cart-total-bar" class="text-sm">₹0</p>
+                <p id="cart-count" class="text-[9px] mb-1 opacity-80">0 ITEMS</p>
+                <p id="cart-total-bar" class="text-base">₹0</p>
             </div>
-            <span class="text-xs font-black">PROCEED TO PAY <i class="fa-solid fa-chevron-right ml-1"></i></span>
+            <span class="text-xs uppercase tracking-widest">View Cart <i class="fa-solid fa-chevron-right ml-1"></i></span>
         </button>
-    </div>
-
-    <div id="checkout-view" class="fixed inset-0 bg-white z-[120] hidden overflow-y-auto">
-        <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white">
-            <button onclick="hideCheckout()"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 class="font-black text-sm">Final Step</h2>
-        </div>
-        <div class="p-4 space-y-6 pb-32">
-            <div id="checkout-items" class="space-y-3 text-xs font-bold border-b pb-4"></div>
-            <div class="bg-gray-50 p-5 rounded-2xl space-y-2">
-                <h3 class="text-[10px] font-black uppercase text-gray-400 mb-2">Bill Details</h3>
-                <div class="flex justify-between text-xs font-bold text-gray-600"><span>Item Total</span><span id="bill-sub">₹0</span></div>
-                <div class="flex justify-between text-xs font-bold text-gray-600"><span>Handling charge</span><span>+₹5</span></div>
-                <div class="flex justify-between text-base font-black text-slate-900 pt-3 border-t mt-2">
-                    <span>Total Bill</span><span id="bill-grand">₹0</span>
-                </div>
-            </div>
-            <div class="space-y-4">
-                <div class="flex justify-between items-center">
-                    <h3 class="text-[10px] font-black uppercase text-gray-400">Deliver To</h3>
-                    <button id="geo-btn" onclick="fetchCurrentLocation()" class="text-[9px] font-black text-blue-600 uppercase"><i class="fa-solid fa-location-crosshairs mr-1"></i> Use Current Location</button>
-                </div>
-                <input type="text" id="cust-name" placeholder="Receiver's Name" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none focus:border-green-600">
-                <input type="tel" id="cust-phone" placeholder="Mobile Number" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none focus:border-green-600">
-                <textarea id="manual-address" placeholder="Building Name / House No / Street Name" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none focus:border-green-600" rows="3"></textarea>
-            </div>
-            <div class="space-y-3">
-                <h3 class="text-[10px] font-black uppercase text-gray-400">Payment Method</h3>
-                <label class="flex items-center justify-between p-4 border rounded-xl bg-blue-50/30 border-blue-100">
-                    <div class="flex items-center gap-3"><i class="fa-solid fa-mobile-screen-button text-blue-600"></i><span class="text-xs font-bold">Pay via UPI</span></div>
-                    <input type="radio" name="pay-method" value="UPI" checked class="accent-blue-600 w-4 h-4">
-                </label>
-                <label class="flex items-center justify-between p-4 border rounded-xl">
-                    <div class="flex items-center gap-3"><i class="fa-solid fa-hand-holding-dollar text-gray-400"></i><span class="text-xs font-bold">Cash on Delivery</span></div>
-                    <input type="radio" name="pay-method" value="COD" class="accent-green-600 w-4 h-4">
-                </label>
-            </div>
-            <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-wider active:scale-95 transition-all">Confirm Order</button>
-        </div>
     </div>
 
     <script>
         const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };
         firebase.initializeApp(config);
         const db = firebase.firestore();
-        
-        let allProducts = [], cart = {}, currentViewingDocId = null;
+
+        let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
+        let allProducts = [], cart = {};
 
         window.onload = () => {
+            if(!currentUser) {
+                document.getElementById('auth-overlay').classList.add('active');
+            } else {
+                initApp();
+            }
+        };
+
+        function showAuth(view) {
+            ['login','register','forgot'].forEach(v => document.getElementById(v+'-view').classList.add('hidden'));
+            document.getElementById(view+'-view').classList.remove('hidden');
+        }
+
+        // --- AUTHENTICATION LOGIC ---
+        async function handleRegister() {
+            const name = document.getElementById('reg-name').value;
+            const phone = document.getElementById('reg-phone').value;
+            const dob = document.getElementById('reg-dob').value;
+            const pass = document.getElementById('reg-pass').value;
+
+            if(!name || !phone || !dob || !pass) return alert("All fields are mandatory");
+            
+            const check = await db.collection("users").where("phone", "==", phone).get();
+            if(!check.empty) return alert("This mobile number is already registered.");
+
+            await db.collection("users").add({ name, phone, dob, pass, createdAt: new Date() });
+            alert("Registered successfully! Please login.");
+            showAuth('login');
+        }
+
+        async function handleLogin() {
+            const phone = document.getElementById('login-phone').value;
+            const pass = document.getElementById('login-pass').value;
+
+            const snap = await db.collection("users").where("phone", "==", phone).where("pass", "==", pass).get();
+            if(snap.empty) return alert("Incorrect mobile number or password.");
+
+            const userData = snap.docs[0].data();
+            localStorage.setItem('user_session', JSON.stringify(userData));
+            currentUser = userData;
+            location.reload(); 
+        }
+
+        async function handleForgot() {
+            const phone = document.getElementById('f-phone').value;
+            const name = document.getElementById('f-name').value;
+            const dob = document.getElementById('f-dob').value;
+
+            const snap = await db.collection("users").where("phone", "==", phone)
+                        .where("name", "==", name).where("dob", "==", dob).get();
+            
+            if(snap.empty) return alert("Account details didn't match.");
+            alert("Verification Successful! Your password is: " + snap.docs[0].data().pass);
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('user_session');
+            location.reload();
+        }
+
+        // --- PRIVATE HISTORY LOGIC ---
+        function initApp() {
+            document.getElementById('auth-overlay').classList.remove('active');
+            document.getElementById('profile-name-txt').innerText = currentUser.name;
+            document.getElementById('profile-number').innerText = currentUser.phone;
+            
+            // Load Products
             db.collection("products").onSnapshot(snap => {
                 allProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderItems(allProducts);
             });
-            checkActiveOrder();
-        };
 
+            // Load PRIVATE history only for this user's phone
+            db.collection("orders").where("customer.phone", "==", currentUser.phone)
+              .orderBy("timestamp", "desc").onSnapshot(snap => {
+                const list = document.getElementById('history-list');
+                list.innerHTML = `<h3 class="text-[10px] font-black uppercase text-gray-400 tracking-widest mb-4">Your Orders</h3>`;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    list.innerHTML += `
+                        <div class="bg-gray-50 p-4 rounded-2xl border flex justify-between items-center mb-2">
+                            <div>
+                                <p class="text-[10px] font-black uppercase ${d.status === 'CANCELLED' ? 'text-red-500' : 'text-green-600'}">${d.status}</p>
+                                <p class="text-xs font-black">₹${d.total} • ${d.orderId}</p>
+                            </div>
+                            <i class="fa-solid fa-chevron-right text-gray-300 text-[10px]"></i>
+                        </div>`;
+                });
+            });
+        }
+
+        // --- PRODUCT GRID LOGIC ---
         function renderItems(list) {
             const grid = document.getElementById('items-grid');
             grid.innerHTML = "";
             list.forEach(p => {
                 const qty = cart[p.id]?.qty || 0;
                 grid.innerHTML += `
-                    <div class="bg-white border rounded-2xl p-3 flex flex-col justify-between shadow-sm">
-                        <div class="aspect-square bg-gray-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
-                            <img src="${p.image || ''}" class="w-full h-full object-contain p-2">
+                    <div class="bg-white border border-black/5 rounded-[24px] p-3 shadow-sm">
+                        <div class="aspect-square bg-slate-50 rounded-2xl mb-3 flex items-center justify-center overflow-hidden">
+                             <img src="${p.image || ''}" class="w-full h-full object-contain p-2">
                         </div>
-                        <p class="font-black text-[11px] h-8 overflow-hidden">${p.name}</p>
-                        <div class="flex justify-between items-center mt-2">
-                            <p class="text-[12px] font-black">₹${p.price}</p>
+                        <p class="font-black text-[11px] mb-1 truncate">${p.name}</p>
+                        <div class="flex justify-between items-center">
+                            <p class="text-[12px] font-black text-slate-900">₹${p.price}</p>
                             ${qty === 0 ? 
-                            `<button onclick="updateQty('${p.id}', 1)" class="border border-green-600 text-green-600 px-4 py-1 rounded-lg text-[10px] font-black uppercase">Add</button>` :
-                            `<div class="flex items-center gap-3 bg-green-600 text-white px-2 py-1 rounded-lg font-black text-[10px]">
-                                <button onclick="updateQty('${p.id}', -1)">-</button><span>${qty}</span><button onclick="updateQty('${p.id}', 1)">+</button>
-                            </div>`}
+                                `<button onclick="updateQty('${p.id}', 1)" class="border border-green-700 text-green-700 px-4 py-1.5 rounded-xl text-[10px] font-black uppercase">Add</button>` :
+                                `<div class="flex items-center gap-3 bg-green-700 text-white px-2 py-1.5 rounded-xl font-black text-[10px]">
+                                    <button onclick="updateQty('${p.id}', -1)">-</button><span>${qty}</span><button onclick="updateQty('${p.id}', 1)">+</button>
+                                </div>`
+                            }
                         </div>
                     </div>`;
             });
@@ -190,134 +256,9 @@
             document.getElementById('cart-count').innerText = `${count} ITEMS`;
         }
 
-        function showCheckout() {
-            const list = document.getElementById('checkout-items');
-            list.innerHTML = "";
-            let sub = 0;
-            Object.keys(cart).forEach(id => {
-                const i = cart[id]; sub += (i.price * i.qty);
-                list.innerHTML += `<div class="flex justify-between text-[11px] font-black"><span>${i.name} (x${i.qty})</span><span>₹${i.price * i.qty}</span></div>`;
-            });
-            document.getElementById('bill-sub').innerText = `₹${sub}`;
-            document.getElementById('bill-grand').innerText = `₹${sub + 5}`;
-            document.getElementById('checkout-view').classList.remove('hidden');
-        }
-
-        async function placeOrder() {
-            const name = document.getElementById('cust-name').value;
-            const phone = document.getElementById('cust-phone').value;
-            const address = document.getElementById('manual-address').value;
-            const method = document.querySelector('input[name="pay-method"]:checked').value;
-            const total = parseInt(document.getElementById('bill-grand').innerText.replace('₹',''));
-            const oid = "ORD" + Math.floor(100000 + Math.random() * 900000);
-
-            if(!name || !phone || !address) return alert("Please fill Name, Phone and Address.");
-
-            await db.collection("orders").add({
-                orderId: oid, items: cart, total: total, status: "PENDING",
-                paymentMethod: method, customer: { name, phone },
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(), address: address
-            });
-
-            localStorage.setItem('active_order', oid);
-            if(method === "UPI") {
-                window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${total}&cu=INR&tn=${oid}`;
-            } else {
-                alert("Order Placed (Status: PENDING)!");
-                location.reload();
-            }
-        }
-
-        async function showOrderDetail(docId) {
-            const doc = await db.collection("orders").doc(docId).get();
-            const d = doc.data();
-            currentViewingDocId = docId;
-
-            const cancellable = ['PENDING', 'ACCEPTED'].includes(d.status.toUpperCase());
-            document.getElementById('cancel-btn-main').classList.toggle('hidden', !cancellable);
-            
-            let itemsHtml = Object.values(d.items).map(i => `
-                <div class="flex justify-between text-xs py-1 border-b border-dashed">
-                    <span>${i.name} x${i.qty}</span>
-                    <span>₹${i.price * i.qty}</span>
-                </div>`).join('');
-            
-            document.getElementById('detail-content').innerHTML = `
-                <div class="bg-white p-4 rounded-2xl border shadow-sm">
-                    <p class="text-[10px] font-black uppercase text-gray-400">Order ID: ${d.orderId}</p>
-                    <h3 class="text-xl font-black ${d.status === 'CANCELLED' ? 'text-red-600' : 'text-green-700'}">${d.status}</h3>
-                    <p class="text-[9px] font-bold text-gray-400">Payment: ${d.paymentMethod}</p>
-                </div>
-                <div class="space-y-1">${itemsHtml}</div>
-                <div class="bg-gray-50 p-4 rounded-xl flex justify-between text-xs font-black"><span>Total Bill</span><span>₹${d.total}</span></div>
-                <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex justify-between items-center">
-                    <div><p class="text-[9px] font-black text-blue-600 uppercase">Rider</p><p class="text-xs font-black">Golla Ashok (8328016917)</p></div>
-                    <a href="tel:8328016917" class="bg-blue-600 text-white p-2 rounded-full w-9 h-9 flex items-center justify-center"><i class="fa-solid fa-phone"></i></a>
-                </div>
-                <div>
-                    <h4 class="text-[10px] font-black uppercase text-gray-400 mb-1">Deliver To</h4>
-                    <p class="text-xs font-bold text-gray-700 leading-relaxed">${d.customer.name} • ${d.customer.phone}<br>📍 ${d.address}</p>
-                </div>`;
-            document.getElementById('order-detail-view').classList.remove('hidden');
-        }
-
-        function fetchCurrentLocation() {
-            const btn = document.getElementById('geo-btn');
-            btn.innerHTML = `<i class="fa-solid fa-spinner animate-spin"></i> Locating...`;
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(async (pos) => {
-                    const { latitude, longitude } = pos.coords;
-                    try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
-                        const data = await res.json();
-                        document.getElementById('manual-address').value = data.display_name;
-                    } catch (e) {
-                        document.getElementById('manual-address').value = `📍 GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`;
-                    }
-                    btn.innerHTML = `<i class="fa-solid fa-location-crosshairs mr-1"></i> Use Current Location`;
-                }, () => {
-                    alert("Location access denied.");
-                    btn.innerHTML = `<i class="fa-solid fa-location-crosshairs mr-1"></i> Use Current Location`;
-                });
-            }
-        }
-
-        async function cancelOrder() {
-            if(confirm("Cancel this order?")) {
-                await db.collection("orders").doc(currentViewingDocId).update({ status: "CANCELLED" });
-                localStorage.removeItem('active_order');
-                location.reload();
-            }
-        }
-
-        function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); openHistory(); }
+        function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); }
         function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
-        function closeOrderDetail() { document.getElementById('order-detail-view').classList.add('hidden'); }
-        function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
         function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
-        function filterItems(c) { renderItems(c === 'All' ? allProducts : allProducts.filter(p => p.category === c)); }
-
-        function openHistory() {
-            db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
-                const list = document.getElementById('history-list');
-                list.innerHTML = `<h3 class="text-[10px] font-black uppercase text-gray-400">Past Orders</h3>`;
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    list.innerHTML += `<div onclick="showOrderDetail('${doc.id}')" class="bg-gray-50 p-4 rounded-2xl border flex justify-between items-center mb-2">
-                        <div><p class="text-[10px] font-black ${d.status === 'CANCELLED' ? 'text-red-500' : 'text-green-600'} uppercase">${d.status}</p><p class="text-xs font-black">₹${d.total} • ${d.orderId}</p></div>
-                        <i class="fa-solid fa-chevron-right text-gray-300"></i>
-                    </div>`;
-                });
-            });
-        }
-
-        function checkActiveOrder() {
-            const id = localStorage.getItem('active_order');
-            if(id) { 
-                document.getElementById('live-status-bar').classList.remove('hidden'); 
-                document.getElementById('active-order-id').innerText = "#" + id; 
-            }
-        }
     </script>
 </body>
 </html>
