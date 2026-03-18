@@ -2,48 +2,155 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Village Express - Admin Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-slate-50 p-6">
-    <div class="grid grid-cols-2 gap-4 mb-8">
-        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-            <p class="text-[10px] font-black text-slate-400 uppercase">UPI Income</p>
-            <h2 id="upi-rev" class="text-2xl font-black text-blue-600">₹0</h2>
+<body class="bg-slate-50 min-h-screen pb-20">
+    <header class="bg-white p-6 border-b sticky top-0 z-50 flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-black italic tracking-tighter uppercase">Village Express</h1>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Kalyandurg Operations</p>
         </div>
-        <div class="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
-            <p class="text-[10px] font-black text-slate-400 uppercase">Cash Income</p>
-            <h2 id="cash-rev" class="text-2xl font-black text-orange-600">₹0</h2>
+        <div class="flex gap-2">
+            <button onclick="showSection('stats')" class="p-3 bg-slate-100 rounded-xl text-slate-600"><i class="fa-solid fa-chart-pie"></i></button>
+            <button onclick="showSection('history')" class="p-3 bg-slate-100 rounded-xl text-slate-600"><i class="fa-solid fa-history"></i></button>
         </div>
-    </div>
+    </header>
 
-    <h3 class="font-black text-[10px] uppercase text-slate-400 mb-4">Payout Requests</h3>
-    <div id="payout-list" class="space-y-3 mb-10"></div>
+    <section id="sec-stats" class="p-4 space-y-4">
+        <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden">
+            <div class="relative z-10">
+                <p class="text-[10px] font-black opacity-50 uppercase mb-1">Total Sales (Cash + UPI + Fees)</p>
+                <h2 id="total-revenue" class="text-4xl font-black italic mb-6">₹0</h2>
+                <div class="grid grid-cols-2 gap-4 border-t border-white/10 pt-6">
+                    <div>
+                        <p class="text-[9px] font-bold opacity-50 uppercase">Your Profit (10%)</p>
+                        <p id="total-profit" class="text-xl font-black text-green-400">₹0</p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-bold opacity-50 uppercase">Delivery Fees</p>
+                        <p id="total-delivery-fees" class="text-xl font-black text-blue-400">₹0</p>
+                    </div>
+                </div>
+            </div>
+            <i class="fa-solid fa-indian-rupee-sign absolute -right-4 -bottom-4 text-white/5 text-9xl"></i>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div class="bg-white p-6 rounded-3xl border border-slate-200">
+                <p class="text-[9px] font-black text-blue-600 uppercase mb-1">UPI Collected</p>
+                <h3 id="upi-total" class="text-xl font-black italic text-slate-800">₹0</h3>
+            </div>
+            <div class="bg-white p-6 rounded-3xl border border-slate-200">
+                <p class="text-[9px] font-black text-orange-500 uppercase mb-1">Cash Collected</p>
+                <h3 id="cash-total" class="text-xl font-black italic text-slate-800">₹0</h3>
+            </div>
+        </div>
+
+        <div class="mt-8">
+            <h3 class="font-black text-xs uppercase text-slate-400 mb-4 px-2 tracking-widest">Rider Payout Requests</h3>
+            <div id="payout-list" class="space-y-3">
+                <div class="text-center py-10 text-slate-400 font-bold text-xs uppercase italic">No pending requests</div>
+            </div>
+        </div>
+    </section>
+
+    <section id="sec-history" class="p-4 hidden">
+        <h3 class="font-black text-xs uppercase text-slate-400 mb-4 px-2 tracking-widest">Master Order History</h3>
+        <div id="order-history-list" class="space-y-3"></div>
+    </section>
 
     <script>
-        const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", authDomain: "village-quick-commerce-e27f6.firebaseapp.com", projectId: "village-quick-commerce-e27f6" };
+        const config = { 
+            apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", 
+            authDomain: "village-quick-commerce-e27f6.firebaseapp.com", 
+            projectId: "village-quick-commerce-e27f6" 
+        };
         firebase.initializeApp(config);
         const db = firebase.firestore();
 
+        // REAL-TIME DASHBOARD LOGIC
         db.collection("orders").where("status", "==", "Delivered").onSnapshot(snap => {
-            let u = 0, c = 0;
-            snap.forEach(doc => { const d = doc.data(); if(d.payment === "UPI") u += d.total; else c += d.total; });
-            document.getElementById('upi-rev').innerText = `₹${u}`;
-            document.getElementById('cash-rev').innerText = `₹${c}`;
-        });
+            let totalRev = 0;
+            let upi = 0;
+            let cash = 0;
+            let deliveryFees = 0;
+            let netProfit = 0;
 
-        db.collection("withdrawals").where("status", "==", "Pending").onSnapshot(snap => {
-            const list = document.getElementById('payout-list'); list.innerHTML = "";
+            const historyList = document.getElementById('order-history-list');
+            historyList.innerHTML = "";
+
             snap.forEach(doc => {
                 const d = doc.data();
-                list.innerHTML += `<div class="bg-white p-4 rounded-2xl flex justify-between items-center shadow-sm">
-                    <p class="font-black text-sm">₹${d.amount} (${d.riderPhone})</p>
-                    <button onclick="db.collection('withdrawals').doc('${doc.id}').update({status:'Paid'})" class="bg-green-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase">Paid</button>
-                </div>`;
+                const orderTotal = parseFloat(d.total);
+                const orderItemsValue = orderTotal - 15; // Subtract delivery fee
+
+                totalRev += orderTotal;
+                deliveryFees += 15;
+                netProfit += (orderItemsValue * 0.10); // 10% Commission on items
+
+                if(d.payment === "UPI") upi += orderTotal;
+                else cash += orderTotal;
+
+                // Add to History View
+                historyList.innerHTML += `
+                    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex justify-between items-start mb-2">
+                            <span class="text-[10px] font-black text-slate-400 italic">#${d.orderId}</span>
+                            <span class="text-xs font-black text-slate-800">₹${d.total}</span>
+                        </div>
+                        <div class="flex justify-between text-[10px] font-bold">
+                            <span class="${d.payment === 'UPI' ? 'text-blue-500' : 'text-orange-500'} uppercase">${d.payment}</span>
+                            <span class="text-green-600">PROFIT: ₹${(orderItemsValue * 0.1).toFixed(2)}</span>
+                        </div>
+                    </div>`;
+            });
+
+            // Update UI
+            document.getElementById('total-revenue').innerText = `₹${totalRev.toFixed(0)}`;
+            document.getElementById('total-profit').innerText = `₹${netProfit.toFixed(0)}`;
+            document.getElementById('total-delivery-fees').innerText = `₹${deliveryFees}`;
+            document.getElementById('upi-total').innerText = `₹${upi}`;
+            document.getElementById('cash-total').innerText = `₹${cash}`;
+        });
+
+        // WITHDRAWAL LOGIC
+        db.collection("withdrawals").where("status", "==", "Pending").onSnapshot(snap => {
+            const list = document.getElementById('payout-list');
+            list.innerHTML = "";
+            if(snap.empty) {
+                list.innerHTML = `<div class="text-center py-10 text-slate-400 font-bold text-xs uppercase italic">No pending requests</div>`;
+                return;
+            }
+            snap.forEach(doc => {
+                const d = doc.data();
+                list.innerHTML += `
+                    <div class="bg-white p-6 rounded-[2rem] border border-slate-200 flex justify-between items-center shadow-lg animate-pulse">
+                        <div>
+                            <p class="text-xs font-black text-slate-800">₹${d.amount}</p>
+                            <p class="text-[9px] font-bold text-blue-500 uppercase tracking-tighter">Rider: ${d.riderPhone}</p>
+                        </div>
+                        <button onclick="approvePayout('${doc.id}')" class="bg-green-600 text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all">
+                            Approve Paid
+                        </button>
+                    </div>`;
             });
         });
+
+        function approvePayout(id) {
+            if(confirm("Confirm that you have paid this rider via UPI?")) {
+                db.collection("withdrawals").doc(id).update({ status: "Paid" });
+            }
+        }
+
+        function showSection(type) {
+            document.getElementById('sec-stats').classList.toggle('hidden', type !== 'stats');
+            document.getElementById('sec-history').classList.toggle('hidden', type !== 'history');
+        }
     </script>
 </body>
 </html>
