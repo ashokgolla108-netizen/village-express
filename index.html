@@ -20,9 +20,9 @@
         <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2" onclick="getCurrentLocation()">
                 <i class="fa-solid fa-location-dot"></i>
-                <div>
+                <div class="overflow-hidden">
                     <h1 class="text-lg font-black italic leading-none">Village Express</h1>
-                    <p id="addr-display" class="text-[10px] font-bold">Set location in Kalyandurg...</p>
+                    <p id="addr-display" class="text-[10px] font-bold truncate w-32">Set location...</p>
                 </div>
             </div>
             <button onclick="openProfile()" class="bg-white/20 p-2 rounded-full w-10 h-10 flex items-center justify-center shadow-inner">
@@ -31,79 +31,97 @@
         </div>
         <div class="relative bg-white rounded-xl flex items-center px-4 py-3 shadow-sm">
             <i class="fa-solid fa-search text-gray-400 mr-3"></i>
-            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search "milk" or "tomato"' class="w-full outline-none text-sm font-medium bg-transparent">
+            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search items in Kalyandurg...' class="w-full outline-none text-sm font-medium bg-transparent">
         </div>
     </header>
 
-    <nav class="bg-white border-b sticky top-[125px] z-40 overflow-x-auto hide-scroll flex gap-2 p-4">
-        <button onclick="filterItems('All')" id="cat-All" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase active-cat">All</button>
-        <button onclick="filterItems('Vegetables')" id="cat-Vegetables" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase">Vegetables</button>
-        <button onclick="filterItems('Fruits')" id="cat-Fruits" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase">Fruits</button>
-        <button onclick="filterItems('Dairy')" id="cat-Dairy" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase">Dairy & Milk</button>
-    </nav>
+    <div id="live-status-bar" class="hidden m-4 p-4 bg-white border-2 border-green-500 rounded-2xl flex items-center justify-between shadow-md">
+        <div class="flex items-center gap-3">
+            <i class="fa-solid fa-truck-fast text-green-600 text-xl animate-bounce"></i>
+            <div>
+                <p class="text-[11px] font-black uppercase text-green-700">Order is Active</p>
+                <p id="active-order-id" class="text-[9px] text-gray-400 font-bold">#ORD...</p>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <a href="tel:8328016917" class="bg-green-600 text-white p-2 rounded-full w-8 h-8 flex items-center justify-center shadow-sm">
+                <i class="fa-solid fa-phone text-[10px]"></i>
+            </a>
+            <button onclick="openHistory()" class="text-[9px] font-black bg-green-100 text-green-700 px-3 py-1 rounded-full uppercase">Details</button>
+        </div>
+    </div>
 
     <main class="p-4">
-        <h3 class="font-black text-sm mb-4">Fresh Items</h3>
         <div id="items-grid" class="grid grid-cols-2 gap-3"></div>
     </main>
 
     <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
-        <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center active:scale-95 transition-transform">
+        <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center">
             <div class="text-left leading-none">
                 <p id="cart-count" class="text-[9px] opacity-80 uppercase mb-1">0 ITEMS</p>
                 <p id="cart-total-bar" class="text-sm">₹0</p>
             </div>
-            <span class="text-xs font-black">PROCEED TO PAY <i class="fa-solid fa-chevron-right ml-1"></i></span>
+            <span class="text-xs font-black italic">PROCEED <i class="fa-solid fa-chevron-right ml-1"></i></span>
         </button>
+    </div>
+
+    <div id="profile-view" class="fixed inset-0 bg-white z-[100] hidden overflow-y-auto">
+        <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
+            <div class="flex items-center gap-4">
+                <button onclick="closeProfile()"><i class="fa-solid fa-arrow-left"></i></button>
+                <h2 class="font-black">Account Details</h2>
+            </div>
+        </div>
+        <div class="p-6 text-center border-b">
+            <div class="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl text-slate-400">
+                <i class="fa-solid fa-user"></i>
+            </div>
+            <p class="text-xs font-black italic tracking-widest text-gray-500">8328016917</p>
+        </div>
+        <div id="history-list" class="p-4 space-y-4">
+            <h3 class="text-[10px] font-black uppercase text-gray-400 mb-2">Order History</h3>
+            </div>
     </div>
 
     <div id="checkout-view" class="fixed inset-0 bg-white z-[120] hidden overflow-y-auto">
         <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white">
             <button onclick="hideCheckout()"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 class="font-black">Order summary</h2>
+            <h2 class="font-black">Finalize Order</h2>
         </div>
-        
-        <div class="p-4 space-y-6">
-            <div id="checkout-items" class="space-y-4"></div>
+        <div class="p-4 space-y-6 pb-20">
+            <div id="checkout-items" class="space-y-4 border-b border-dashed pb-4"></div>
             
             <div class="bg-gray-50 p-6 rounded-3xl">
-                <h3 class="font-black text-sm mb-4">Bill details</h3>
                 <div class="space-y-2 text-xs font-bold text-gray-600">
-                    <div class="flex justify-between"><span>Item Total</span><span id="bill-sub">₹0</span></div>
-                    <div class="flex justify-between"><span>Handling charge</span><span>+₹5</span></div>
-                    <div class="flex justify-between"><span>Delivery fee</span><span>+₹15</span></div>
-                    <div class="flex justify-between text-base font-black text-slate-900 pt-3 border-t border-dashed mt-2">
-                        <span>Bill total</span><span id="bill-grand">₹0</span>
+                    <div class="flex justify-between"><span>Subtotal</span><span id="bill-sub">₹0</span></div>
+                    <div class="flex justify-between"><span>Handling</span><span>+₹5</span></div>
+                    <div class="flex justify-between text-green-600"><span>Delivery Fee</span><span>+₹15</span></div>
+                    <div class="flex justify-between text-base font-black text-slate-900 pt-3 border-t mt-2">
+                        <span>Total Pay</span><span id="bill-grand">₹0</span>
                     </div>
                 </div>
             </div>
 
-            <div class="bg-gray-50 p-4 rounded-2xl space-y-3">
-                <p class="text-[10px] font-black text-gray-400 uppercase">Deliver to</p>
-                <input type="text" id="cust-name" placeholder="Enter Your Name" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none">
-                <input type="text" id="cust-mobile" readonly class="w-full bg-gray-100 border border-gray-200 rounded-xl p-3 text-xs font-bold text-gray-500">
-                <input type="text" id="cust-building" placeholder="Building Name / Landmark" class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none">
-                
-                <div class="flex justify-between items-center pt-2">
-                    <button onclick="getCurrentLocation()" class="text-[10px] font-black text-blue-600 uppercase"><i class="fa-solid fa-crosshairs mr-1"></i> Update Current Location</button>
-                </div>
-                <textarea id="manual-address" placeholder="Address Details..." class="w-full bg-white border border-gray-200 rounded-xl p-3 text-xs font-bold outline-none" rows="2"></textarea>
+            <div class="space-y-3">
+                <input type="text" id="cust-name" placeholder="Receiver Name" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none">
+                <input type="text" id="cust-landmark" placeholder="Building/Landmark" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none">
+                <textarea id="manual-address" placeholder="Exact Delivery Location..." class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none" rows="2"></textarea>
+                <button onclick="getCurrentLocation()" class="text-[9px] font-black text-blue-600 uppercase w-full text-right"><i class="fa-solid fa-location-crosshairs"></i> Refresh Current Location</button>
             </div>
 
-            <div class="space-y-2">
-                <p class="text-[10px] font-black text-gray-400 uppercase ml-2">Payment Method</p>
-                <button id="pay-upi" onclick="setPayment('UPI')" class="w-full p-4 border-2 border-blue-100 rounded-2xl flex items-center gap-3 bg-blue-50/50">
-                    <i class="fa-solid fa-mobile-screen-button text-blue-500"></i>
-                    <span class="text-xs font-black">Pay via UPI</span>
+            <div class="flex gap-2">
+                <button onclick="setPayment('UPI')" id="pay-upi" class="flex-1 p-4 border-2 border-blue-100 bg-blue-50/50 rounded-2xl text-center">
+                    <i class="fa-solid fa-mobile-screen text-blue-500 mb-1"></i>
+                    <p class="text-[10px] font-black">UPI</p>
                 </button>
-                <button id="pay-cod" onclick="setPayment('COD')" class="w-full p-4 border-2 border-gray-100 rounded-2xl flex items-center gap-3">
-                    <i class="fa-solid fa-hand-holding-dollar text-green-600"></i>
-                    <span class="text-xs font-black">Cash on Delivery</span>
+                <button onclick="setPayment('COD')" id="pay-cod" class="flex-1 p-4 border-2 border-gray-100 rounded-2xl text-center">
+                    <i class="fa-solid fa-hand-holding-dollar text-green-600 mb-1"></i>
+                    <p class="text-[10px] font-black">CASH</p>
                 </button>
             </div>
 
-            <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest active:scale-95 transition-transform mb-12">
-                Confirm Order
+            <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest active:scale-95 transition-all">
+                Confirm & Pay
             </button>
         </div>
     </div>
@@ -114,14 +132,14 @@
         const db = firebase.firestore();
         
         let allProducts = [], cart = {}, paymentMethod = "UPI";
-        const MOBILE_ID = "8328016917"; //
+        const RIDER_PHONE = "8328016917";
 
         window.onload = () => {
-            document.getElementById('cust-mobile').value = MOBILE_ID;
             db.collection("products").onSnapshot(snap => {
                 allProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderItems(allProducts);
             });
+            checkActiveOrder();
         };
 
         function renderItems(list) {
@@ -130,7 +148,7 @@
             list.forEach(p => {
                 const qty = cart[p.id]?.qty || 0;
                 grid.innerHTML += `
-                    <div class="bg-white border rounded-2xl p-3 flex flex-col justify-between">
+                    <div class="bg-white border rounded-2xl p-3 flex flex-col justify-between shadow-sm">
                         <div class="aspect-square bg-gray-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
                             <img src="${p.image || ''}" class="w-full h-full object-contain p-2">
                         </div>
@@ -163,7 +181,7 @@
             let sub = 0, count = 0;
             Object.values(cart).forEach(i => { sub += i.price * i.qty; count += i.qty; });
             document.getElementById('cart-bar').classList.toggle('hidden', count === 0);
-            document.getElementById('cart-total-bar').innerText = `₹${sub + 20}`; // sub + 5 (handling) + 15 (delivery)
+            document.getElementById('cart-total-bar').innerText = `₹${sub + 20}`;
             document.getElementById('cart-count').innerText = `${count} ITEMS`;
         }
 
@@ -175,18 +193,12 @@
                 const i = cart[id];
                 sub += (i.price * i.qty);
                 list.innerHTML += `
-                    <div class="flex justify-between items-center border-b border-dashed pb-2">
-                        <div>
-                            <p class="text-xs font-black">${i.name}</p>
-                            <p class="text-[9px] text-gray-400 font-bold">₹${i.price} per unit</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <div class="flex items-center gap-2 bg-gray-100 px-2 py-1 rounded-lg">
-                                <button onclick="updateQty('${id}', -1)" class="text-xs font-black px-1">-</button>
-                                <span class="text-[10px] font-black">${i.qty}</span>
-                                <button onclick="updateQty('${id}', 1)" class="text-xs font-black px-1">+</button>
-                            </div>
-                            <p class="text-xs font-black w-12 text-right">₹${i.price * i.qty}</p>
+                    <div class="flex justify-between items-center">
+                        <p class="text-xs font-black">${i.name}</p>
+                        <div class="flex items-center gap-4 bg-gray-100 px-2 py-1 rounded-lg">
+                            <button onclick="updateQty('${id}', -1)" class="text-[10px] font-black px-1">-</button>
+                            <span class="text-[10px] font-black">${i.qty}</span>
+                            <button onclick="updateQty('${id}', 1)" class="text-[10px] font-black px-1">+</button>
                         </div>
                     </div>`;
             });
@@ -196,69 +208,87 @@
         }
 
         async function placeOrder() {
+            const btn = document.getElementById('confirm-btn');
             const name = document.getElementById('cust-name').value;
             const addr = document.getElementById('manual-address').value;
-            const btn = document.getElementById('confirm-btn');
 
-            if(!name || !addr) return alert("Please fill in your Name and Address");
+            if(!name || !addr) return alert("Please fill details");
             
             btn.disabled = true;
-            btn.innerText = "PROCESSING...";
+            btn.innerText = "CONFIRMING...";
 
-            const oid = "ORD" + Date.now().toString().slice(-7);
+            const oid = "ORD" + Date.now().toString().slice(-6);
             const total = parseInt(document.getElementById('bill-grand').innerText.replace('₹',''));
 
             try {
                 await db.collection("orders").add({
-                    orderId: oid,
-                    items: cart,
-                    total: total,
-                    customer: { 
-                        name: name, 
-                        mobile: MOBILE_ID, 
-                        landmark: document.getElementById('cust-building').value 
-                    },
-                    address: addr,
-                    method: paymentMethod,
-                    status: "Confirmed",
+                    orderId: oid, items: cart, total: total,
+                    customer: { name, mobile: "8328016917", landmark: document.getElementById('cust-landmark').value },
+                    address: addr, method: paymentMethod, status: "Confirmed",
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
+                localStorage.setItem('active_order', oid);
+                
                 if(paymentMethod === "UPI") {
                     window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${total}&cu=INR&tn=${oid}`;
                 } else {
-                    alert("Order Confirmed! Your items are on the way.");
+                    alert("Order Placed Successfully!");
                     location.reload();
                 }
-            } catch (error) {
-                alert("Order failed: " + error.message);
-                btn.disabled = false;
-                btn.innerText = "CONFIRM ORDER";
+            } catch (e) { alert("Error: " + e.message); btn.disabled = false; }
+        }
+
+        function checkActiveOrder() {
+            const activeId = localStorage.getItem('active_order');
+            if(activeId) {
+                document.getElementById('live-status-bar').classList.remove('hidden');
+                document.getElementById('active-order-id').innerText = "#" + activeId;
             }
+        }
+
+        function openHistory() {
+            document.getElementById('profile-view').classList.remove('hidden');
+            db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
+                const list = document.getElementById('history-list');
+                list.innerHTML = `<h3 class="text-[10px] font-black uppercase text-gray-400 mb-4">Past Orders</h3>`;
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    list.innerHTML += `
+                        <div class="bg-gray-50 p-4 rounded-2xl border flex justify-between items-center shadow-sm">
+                            <div>
+                                <p class="text-[10px] font-black text-green-600 uppercase mb-1">${d.status}</p>
+                                <p class="text-xs font-black">₹${d.total} • ${d.orderId}</p>
+                            </div>
+                            <a href="tel:${RIDER_PHONE}" class="bg-white border text-green-700 font-black text-[9px] px-3 py-2 rounded-xl uppercase flex items-center gap-1">
+                                <i class="fa-solid fa-phone"></i> Call Rider
+                            </a>
+                        </div>`;
+                });
+            });
         }
 
         function setPayment(m) {
             paymentMethod = m;
-            document.getElementById('pay-upi').className = m === 'UPI' ? 'w-full p-4 border-2 border-blue-100 rounded-2xl flex items-center gap-3 bg-blue-50/50' : 'w-full p-4 border-2 border-gray-100 rounded-2xl flex items-center gap-3';
-            document.getElementById('pay-cod').className = m === 'COD' ? 'w-full p-4 border-2 border-green-100 rounded-2xl flex items-center gap-3 bg-green-50/50' : 'w-full p-4 border-2 border-gray-100 rounded-2xl flex items-center gap-3';
+            document.getElementById('pay-upi').className = m === 'UPI' ? 'flex-1 p-4 border-2 border-blue-100 bg-blue-50/50 rounded-2xl text-center' : 'flex-1 p-4 border-2 border-gray-100 rounded-2xl text-center';
+            document.getElementById('pay-cod').className = m === 'COD' ? 'flex-1 p-4 border-2 border-green-100 bg-green-50/50 rounded-2xl text-center' : 'flex-1 p-4 border-2 border-gray-100 rounded-2xl text-center';
         }
 
         function getCurrentLocation() {
             navigator.geolocation.getCurrentPosition(pos => {
                 fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${pos.coords.latitude}&lon=${pos.coords.longitude}`)
                 .then(r => r.json()).then(data => {
-                    const addr = data.display_name.split(',').slice(0, 4).join(',');
-                    document.getElementById('manual-address').value = addr;
-                    document.getElementById('addr-display').innerText = addr;
+                    const area = data.display_name.split(',').slice(0, 3).join(',');
+                    document.getElementById('addr-display').innerText = area;
+                    document.getElementById('manual-address').value = area;
                 });
-            }, () => alert("Enable GPS to set location"));
+            });
         }
 
-        function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
-        function filterItems(c) { renderItems(c === 'All' ? allProducts : allProducts.filter(p => p.category === c)); }
+        function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); }
+        function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
         function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
-        function openProfile() { alert("Account: " + MOBILE_ID); }
+        function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
     </script>
 </body>
-    </html>
-    
+</html>
