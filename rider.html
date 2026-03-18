@@ -11,124 +11,90 @@
 </head>
 <body class="bg-gray-50 pb-20">
 
-    <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-6 hidden">
-        <div id="login-view" class="space-y-6 pt-10 text-center">
-            <h1 class="text-4xl font-black italic">Rider Portal</h1>
-            <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-4 border rounded-xl">
-            <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 border rounded-xl">
-            <button onclick="handleLogin()" class="w-full bg-slate-800 text-white p-4 rounded-xl font-black">ENTER PORTAL</button>
-            <button onclick="showAuth('register')" class="text-xs font-bold text-blue-600 mt-4 uppercase">Register as Rider</button>
+    <header class="bg-[#1a1f2c] p-6 text-white rounded-b-[40px] shadow-lg">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="text-2xl font-black italic tracking-tight">Rider Portal</h1>
+            <button onclick="handleLogout()" class="bg-white/10 p-3 rounded-2xl"><i class="fa-solid fa-power-off text-red-400"></i></button>
         </div>
-        <div id="register-view" class="hidden space-y-4">
-            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 border rounded-xl">
-            <input type="tel" id="reg-phone" placeholder="Mobile" class="w-full p-4 border rounded-xl">
-            <input type="password" id="reg-pass" placeholder="Password" class="w-full p-4 border rounded-xl">
-            <button onclick="handleRegister()" class="w-full bg-slate-800 text-white p-4 rounded-xl font-black">REGISTER</button>
-            <button onclick="showAuth('login')" class="w-full text-xs font-bold text-gray-400 mt-4 uppercase">Back</button>
+        <div class="flex items-center gap-3">
+            <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+            <p id="rider-name" class="text-[10px] font-black uppercase tracking-widest text-gray-400">Golla Ashok</p>
         </div>
+    </header>
+
+    <div class="flex px-6 mt-6 border-b bg-white sticky top-0 z-10">
+        <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-[10px] uppercase border-b-2 border-green-500 text-green-500">Active Tasks</button>
+        <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-[10px] uppercase text-gray-400">Earnings History</button>
     </div>
 
-    <div id="main-app" class="hidden">
-        <header class="bg-[#1a1f2c] p-6 text-white rounded-b-[40px] shadow-lg">
-            <div class="flex justify-between items-center mb-6">
-                <div><h1 class="text-2xl font-black italic">Rider Dashboard</h1><p id="rider-name" class="text-xs text-gray-400 uppercase font-bold tracking-widest">---</p></div>
-                <button onclick="handleLogout()" class="bg-white/10 p-3 rounded-2xl"><i class="fa-solid fa-power-off"></i></button>
-            </div>
-            <div id="status-card" class="bg-white/5 p-4 rounded-3xl border border-white/10 text-center">
-                <p id="rider-status-text" class="text-green-400 font-black uppercase tracking-tighter">Ready for Orders</p>
-            </div>
-        </header>
-
-        <div class="flex px-6 mt-6 border-b bg-white sticky top-0 z-10">
-            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs uppercase border-b-2 border-green-500 text-green-500">Active</button>
-            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs uppercase text-gray-400">History</button>
-        </div>
-
-        <main id="order-list" class="p-4 space-y-4"></main>
-    </div>
+    <main id="order-list" class="p-4 space-y-4"></main>
 
     <script>
         const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };
         firebase.initializeApp(config);
         const db = firebase.firestore();
 
-        let currentRider = JSON.parse(localStorage.getItem('rider_session')) || null;
+        let currentRider = JSON.parse(localStorage.getItem('rider_session'));
         let currentTab = 'active';
 
-        window.onload = () => { if(!currentRider) showAuth('login'); else { document.getElementById('rider-name').innerText = currentRider.name; document.getElementById('main-app').classList.remove('hidden'); startTracking(); loadOrders(); } };
+        window.onload = () => { 
+            if(!currentRider) location.href = "login.html"; // Ensure rider is logged in
+            else { 
+                document.getElementById('rider-name').innerText = currentRider.name; 
+                startLiveTracking(); 
+                loadOrders(); 
+            }
+        };
 
-        function showAuth(v) { 
-            document.getElementById('auth-overlay').classList.remove('hidden');
-            document.getElementById('login-view').classList.toggle('hidden', v !== 'login');
-            document.getElementById('register-view').classList.toggle('hidden', v !== 'register');
-        }
-
-        async function handleLogin() {
-            const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
-            const s = await db.collection("riders").where("phone","==",p).where("pass","==",pw).get();
-            if(s.empty) return alert("Rider login failed");
-            currentRider = { id: s.docs[0].id, ...s.docs[0].data() };
-            localStorage.setItem('rider_session', JSON.stringify(currentRider));
-            location.reload();
-        }
-
-        async function handleRegister() {
-            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, pw = document.getElementById('reg-pass').value;
-            await db.collection("riders").add({ name:n, phone:p, pass:pw, lat:0, lng:0 });
-            alert("Rider Added!"); showAuth('login');
-        }
-
-        function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
-
-        // NAVIGATION LOGIC
-        function openNavigation(addr) {
-            const coords = addr.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
-            if (coords) window.open(`https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[2]}`, '_blank');
-            else window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank');
-        }
-
-        // START TRACKING
-        function startTracking() {
+        // TRACKS RIDER & UPDATES ACTIVE ORDER DOCUMENT
+        function startLiveTracking() {
             navigator.geolocation.watchPosition(pos => {
-                db.collection("riders").doc(currentRider.id).update({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            }, err => console.log(err), { enableHighAccuracy: true });
+                const { latitude: lat, longitude: lng } = pos.coords;
+                // Update Rider's personal position
+                db.collection("riders").doc(currentRider.id).update({ lat, lng });
+                
+                // If I have an accepted job, update that order too so the user sees me moving
+                db.collection("orders").where("riderId", "==", currentRider.id).where("status", "==", "ACCEPTED").get().then(s => {
+                    s.forEach(doc => doc.ref.update({ riderLat: lat, riderLng: lng }));
+                });
+            }, null, {enableHighAccuracy: true});
         }
 
         function loadOrders() {
             db.collection("orders").onSnapshot(snap => {
-                const list = document.getElementById('order-list');
-                list.innerHTML = "";
-                
-                // Check if I have an active accepted order
-                const activeJob = snap.docs.find(doc => doc.data().riderId === currentRider.id && doc.data().status === "ACCEPTED");
-                document.getElementById('rider-status-text').innerText = activeJob ? "Busy Delivering" : "Ready for Orders";
+                const list = document.getElementById('order-list'); list.innerHTML = "";
+                const hasMyActive = snap.docs.find(doc => doc.data().riderId === currentRider.id && doc.data().status === "ACCEPTED");
 
                 snap.docs.forEach(doc => {
                     const d = doc.data();
+                    // FILTERING LOGIC
+                    if(hasMyActive && d.status === "PENDING") return; // Don't show new jobs if I'm busy
+                    if(d.status === "ACCEPTED" && d.riderId !== currentRider.id) return; // Hide jobs of other riders
                     
-                    // Logic: Hide pending if I'm busy. Hide other riders' jobs.
-                    if (activeJob && d.status === "PENDING") return;
-                    if (d.status === "ACCEPTED" && d.riderId !== currentRider.id) return;
-
                     const isHistory = (d.status === "DELIVERED" || d.status === "CANCELLED");
-                    if (currentTab === 'active' && isHistory) return;
-                    if (currentTab === 'history' && !isHistory) return;
+                    if(currentTab === 'active' && isHistory) return;
+                    if(currentTab === 'history' && !isHistory) return;
 
                     list.innerHTML += `
-                        <div class="bg-white p-6 rounded-[32px] border shadow-sm">
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="text-[9px] font-bold text-gray-300">#${d.orderId}</span>
-                                <span class="bg-orange-50 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black uppercase">${d.status}</span>
+                        <div class="bg-white p-6 rounded-[40px] border shadow-sm">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-[9px] font-black text-gray-300">#${d.orderId}</span>
+                                <span class="bg-slate-100 px-3 py-1 rounded-full text-[9px] font-black uppercase text-slate-500">${d.status}</span>
                             </div>
-                            <h3 class="font-black text-lg mb-4 italic">${Object.values(d.items).map(i => i.name).join(', ')}</h3>
-                            <div class="bg-slate-50 p-4 rounded-2xl mb-4">
-                                <p class="font-black text-sm">${d.customer.name}</p>
-                                <p class="text-[11px] text-gray-500 font-bold">${d.address}</p>
+                            <h3 class="font-black text-xl mb-4 italic text-slate-800">${Object.values(d.items).map(i => i.name).join(', ')}</h3>
+                            
+                            <div class="bg-slate-50 p-5 rounded-3xl border border-gray-100 mb-6">
+                                <div class="flex justify-between items-center mb-2">
+                                    <p class="font-black text-sm text-slate-800">${d.customer.name}</p>
+                                    <a href="tel:${d.customer.phone}" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg"><i class="fa-solid fa-phone-alt"></i></a>
+                                </div>
+                                <p class="text-[11px] font-bold text-gray-500 leading-relaxed">${d.address}</p>
                             </div>
+
                             <div class="flex gap-2">
-                                <button onclick="openNavigation('${d.address}')" class="flex-1 bg-slate-800 text-white p-4 rounded-2xl font-black text-xs uppercase">Navigate</button>
-                                ${d.status === 'PENDING' ? `<button onclick="acceptOrder('${doc.id}')" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Accept</button>` : ''}
-                                ${d.status === 'ACCEPTED' ? `<button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Deliver</button>` : ''}
+                                <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}', '_blank')" class="flex-1 bg-slate-800 text-white p-4 rounded-2xl font-black text-xs uppercase tracking-widest">Open Maps</button>
+                                ${d.status === 'PENDING' ? `<button onclick="acceptOrder('${doc.id}')" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Accept Job</button>` : ''}
+                                ${d.status === 'ACCEPTED' ? `<button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Mark Delivered</button>` : ''}
                             </div>
                         </div>`;
                 });
@@ -145,7 +111,13 @@
         }
 
         async function updateStatus(id, s) { await db.collection("orders").doc(id).update({ status: s }); }
-        function switchTab(t) { currentTab = t; loadOrders(); }
+        function switchTab(t) { 
+            currentTab = t; 
+            document.getElementById('tab-active').className = t === 'active' ? 'flex-1 py-4 font-black text-[10px] uppercase border-b-2 border-green-500 text-green-500' : 'flex-1 py-4 font-black text-[10px] uppercase text-gray-400';
+            document.getElementById('tab-history').className = t === 'history' ? 'flex-1 py-4 font-black text-[10px] uppercase border-b-2 border-green-500 text-green-500' : 'flex-1 py-4 font-black text-[10px] uppercase text-gray-400';
+            loadOrders(); 
+        }
+        function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
     </script>
 </body>
 </html>
