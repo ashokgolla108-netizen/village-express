@@ -53,19 +53,21 @@
 
         let currentTab = 'active';
 
-        // 1. NAVIGATION LOGIC: Extracts coordinates from your custom address string
+        // FIXED NAVIGATION: Uses standard Google Maps URL scheme
         function openNavigation(addressString) {
-            // Regex to find decimal coordinates (e.g., 14.550403, 77.017540)
+            // Extracts coordinates from your address string "GPS: 14.550403, 77.017540"
             const coordsMatch = addressString.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
             
             if (coordsMatch) {
                 const lat = coordsMatch[1];
                 const lon = coordsMatch[2];
-                // Direct Google Maps URL for precise pins
-                window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lon}`, '_blank');
+                // Using standard Google Maps Search API URL
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+                window.open(mapUrl, '_blank');
             } else {
-                // If no coordinates, search by text
-                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressString)}`, '_blank');
+                // Fallback to text search
+                const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressString)}`;
+                window.open(mapUrl, '_blank');
             }
         }
 
@@ -86,14 +88,8 @@
 
                 sortedDocs.forEach(doc => {
                     const d = doc.data();
-                    
-                    // Stats calculation
-                    if(d.status === "DELIVERED") {
-                        earnings += (d.total - 5); // Subtracting handling fee for rider earnings logic
-                        count++;
-                    }
+                    if(d.status === "DELIVERED") { earnings += (d.total - 5); count++; }
 
-                    // Tab Filtering
                     const isHistory = (d.status === "DELIVERED" || d.status === "CANCELLED");
                     if(currentTab === 'active' && isHistory) return;
                     if(currentTab === 'history' && !isHistory) return;
@@ -101,10 +97,10 @@
                     const itemsText = Object.values(d.items).map(i => `${i.name} (x${i.qty})`).join(', ');
 
                     list.innerHTML += `
-                        <div class="bg-white p-6 rounded-[32px] card-shadow border border-gray-100 relative">
+                        <div class="bg-white p-6 rounded-[32px] card-shadow border border-gray-100">
                             <div class="flex justify-between items-start mb-4">
                                 <div>
-                                    <p class="text-[9px] font-bold text-gray-300 uppercase tracking-tighter">#${d.orderId}</p>
+                                    <p class="text-[9px] font-bold text-gray-300 uppercase">#${d.orderId}</p>
                                     <h3 class="font-black text-lg text-slate-800">${itemsText}</h3>
                                 </div>
                                 <span class="bg-orange-50 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black uppercase">${d.status}</span>
@@ -118,13 +114,13 @@
                                         </div>
                                         <p class="font-black text-sm">${d.customer.name}</p>
                                     </div>
-                                    <a href="tel:${d.customer.phone}" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg shadow-blue-200">
+                                    <a href="tel:${d.customer.phone}" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg">
                                         <i class="fa-solid fa-phone-alt text-xs"></i>
                                     </a>
                                 </div>
                                 <div class="flex items-start gap-3 pt-2 border-t border-gray-200/50">
                                     <i class="fa-solid fa-location-dot text-red-500 mt-1"></i>
-                                    <p class="text-[11px] font-bold text-gray-500 leading-relaxed">${d.address}</p>
+                                    <p class="text-[11px] font-bold text-gray-500">${d.address}</p>
                                 </div>
                             </div>
 
@@ -138,8 +134,6 @@
                                     <button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase">Mark Delivered</button>
                                 ` : ''}
                             </div>
-                            
-                            <p class="text-center mt-4 text-[10px] font-black text-gray-400 uppercase">Total Bill: ₹${d.total}</p>
                         </div>`;
                 });
 
@@ -148,10 +142,7 @@
             });
         }
 
-        async function updateStatus(id, s) {
-            await db.collection("orders").doc(id).update({ status: s });
-        }
-
+        async function updateStatus(id, s) { await db.collection("orders").doc(id).update({ status: s }); }
         window.onload = loadOrders;
     </script>
 </body>
