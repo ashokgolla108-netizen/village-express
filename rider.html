@@ -8,43 +8,42 @@
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    </style>
 </head>
-<body class="bg-gray-50 pb-20">
+<body class="bg-[#111827] text-white">
 
-    <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-6 hidden">
+    <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-6 hidden text-slate-900">
         <div id="login-view" class="space-y-6 pt-10 text-center">
-            <h1 class="text-4xl font-black italic">Rider Portal</h1>
-            <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-4 border rounded-xl">
-            <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 border rounded-xl">
-            <button onclick="handleLogin()" class="w-full bg-slate-800 text-white p-4 rounded-xl font-black">ENTER PORTAL</button>
-            <button onclick="showAuth('register')" class="text-xs font-bold text-blue-600 mt-4 uppercase">Register as Rider</button>
-        </div>
-        <div id="register-view" class="hidden space-y-4">
-            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 border rounded-xl">
-            <input type="tel" id="reg-phone" placeholder="Mobile" class="w-full p-4 border rounded-xl">
-            <input type="password" id="reg-pass" placeholder="Password" class="w-full p-4 border rounded-xl">
-            <button onclick="handleRegister()" class="w-full bg-slate-800 text-white p-4 rounded-xl font-black">REGISTER</button>
-            <button onclick="showAuth('login')" class="w-full text-xs font-bold text-gray-400 mt-4 uppercase">Back</button>
+            <h1 class="text-3xl font-black italic">Rider Portal</h1>
+            <input type="tel" id="login-phone" placeholder="Mobile" class="w-full p-4 border rounded-2xl outline-none">
+            <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 border rounded-2xl outline-none">
+            <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-black uppercase tracking-widest shadow-lg">Start Shift</button>
         </div>
     </div>
 
     <div id="main-app" class="hidden">
-        <header class="bg-[#1a1f2c] p-6 text-white rounded-b-[40px] shadow-lg">
-            <div class="flex justify-between items-center mb-6">
-                <div><h1 class="text-2xl font-black italic">Rider Dashboard</h1><p id="rider-name" class="text-xs text-gray-400 uppercase font-bold tracking-widest">---</p></div>
-                <button onclick="handleLogout()" class="bg-white/10 p-3 rounded-2xl"><i class="fa-solid fa-power-off"></i></button>
-            </div>
-            <div id="status-card" class="bg-white/5 p-4 rounded-3xl border border-white/10 text-center">
-                <p id="rider-status-text" class="text-green-400 font-black uppercase tracking-tighter">Ready for Orders</p>
+        <header class="p-6 bg-slate-800/50 backdrop-blur rounded-b-[3rem] border-b border-white/5 sticky top-0 z-50">
+            <div class="flex justify-between items-center">
+                <div>
+                    <p class="text-[10px] font-black opacity-40 uppercase tracking-widest">Rider</p>
+                    <h1 id="rider-name" class="text-xl font-black italic tracking-tight">---</h1>
+                </div>
+                <button onclick="handleLogout()" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-red-400 border border-white/10">
+                    <i class="fa-solid fa-power-off"></i>
+                </button>
             </div>
         </header>
 
-        <div class="flex px-6 mt-6 border-b bg-white sticky top-0 z-10">
-            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs uppercase border-b-2 border-green-500 text-green-500">Active</button>
-            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs uppercase text-gray-400">History</button>
+        <div class="flex px-6 mt-6 gap-4">
+            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-3 font-black text-[10px] uppercase rounded-full bg-green-600 transition-all">New & Active</button>
+            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-3 font-black text-[10px] uppercase rounded-full bg-slate-800 transition-all text-slate-400">Past Orders</button>
         </div>
 
-        <main id="order-list" class="p-4 space-y-4"></main>
+        <main id="order-list" class="p-6 space-y-4">
+            </main>
     </div>
 
     <script>
@@ -55,80 +54,84 @@
         let currentRider = JSON.parse(localStorage.getItem('rider_session')) || null;
         let currentTab = 'active';
 
-        window.onload = () => { if(!currentRider) showAuth('login'); else { document.getElementById('rider-name').innerText = currentRider.name; document.getElementById('main-app').classList.remove('hidden'); startTracking(); loadOrders(); } };
+        window.onload = () => { if(!currentRider) showAuth(); else initRider(); };
 
-        function showAuth(v) { 
-            document.getElementById('auth-overlay').classList.remove('hidden');
-            document.getElementById('login-view').classList.toggle('hidden', v !== 'login');
-            document.getElementById('register-view').classList.toggle('hidden', v !== 'register');
-        }
+        function showAuth() { document.getElementById('auth-overlay').classList.remove('hidden'); }
 
         async function handleLogin() {
             const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
             const s = await db.collection("riders").where("phone","==",p).where("pass","==",pw).get();
-            if(s.empty) return alert("Rider login failed");
+            if(s.empty) return alert("Rider account not found!");
             currentRider = { id: s.docs[0].id, ...s.docs[0].data() };
             localStorage.setItem('rider_session', JSON.stringify(currentRider));
             location.reload();
         }
 
-        async function handleRegister() {
-            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, pw = document.getElementById('reg-pass').value;
-            await db.collection("riders").add({ name:n, phone:p, pass:pw, lat:0, lng:0 });
-            alert("Rider Added!"); showAuth('login');
-        }
-
         function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
 
-        // NAVIGATION LOGIC
-        function openNavigation(addr) {
-            const coords = addr.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
-            if (coords) window.open(`https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[2]}`, '_blank');
-            else window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank');
-        }
-
-        // START TRACKING
-        function startTracking() {
-            navigator.geolocation.watchPosition(pos => {
-                db.collection("riders").doc(currentRider.id).update({ lat: pos.coords.latitude, lng: pos.coords.longitude });
-            }, err => console.log(err), { enableHighAccuracy: true });
+        function initRider() {
+            document.getElementById('rider-name').innerText = currentRider.name;
+            document.getElementById('main-app').classList.remove('hidden');
+            loadOrders();
         }
 
         function loadOrders() {
+            // WE REMOVE COMPLEX QUERIES TO ENSURE ORDERS ALWAYS SHOW UP
             db.collection("orders").onSnapshot(snap => {
                 const list = document.getElementById('order-list');
                 list.innerHTML = "";
                 
-                // Check if I have an active accepted order
-                const activeJob = snap.docs.find(doc => doc.data().riderId === currentRider.id && doc.data().status === "ACCEPTED");
-                document.getElementById('rider-status-text').innerText = activeJob ? "Busy Delivering" : "Ready for Orders";
+                if (snap.empty) {
+                    list.innerHTML = `<div class="text-center py-20 opacity-20 font-black italic">SEARCHING FOR ORDERS...</div>`;
+                    return;
+                }
 
-                snap.docs.forEach(doc => {
+                // Sort by time
+                const sortedDocs = snap.docs.sort((a,b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0));
+
+                sortedDocs.forEach(doc => {
                     const d = doc.data();
                     
-                    // Logic: Hide pending if I'm busy. Hide other riders' jobs.
-                    if (activeJob && d.status === "PENDING") return;
-                    if (d.status === "ACCEPTED" && d.riderId !== currentRider.id) return;
+                    // Logic to show or hide order based on tab
+                    if (currentTab === 'active') {
+                        // In Active Tab: Show if PENDING (for everyone) OR if ACCEPTED by ME
+                        if (d.status === "DELIVERED") return;
+                        if (d.status === "ACCEPTED" && d.riderId !== currentRider.id) return;
+                    } else {
+                        // In History Tab: Show only if I delivered it
+                        if (d.status !== "DELIVERED" || d.riderId !== currentRider.id) return;
+                    }
 
-                    const isHistory = (d.status === "DELIVERED" || d.status === "CANCELLED");
-                    if (currentTab === 'active' && isHistory) return;
-                    if (currentTab === 'history' && !isHistory) return;
+                    const itemsList = Object.values(d.items).map(i => `${i.name} x${i.qty}`).join(', ');
 
                     list.innerHTML += `
-                        <div class="bg-white p-6 rounded-[32px] border shadow-sm">
-                            <div class="flex justify-between items-start mb-4">
-                                <span class="text-[9px] font-bold text-gray-300">#${d.orderId}</span>
-                                <span class="bg-orange-50 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black uppercase">${d.status}</span>
+                        <div class="bg-slate-800 border border-white/5 p-6 rounded-[2.5rem] shadow-xl animate-in fade-in duration-500">
+                            <div class="flex justify-between items-center mb-4">
+                                <span class="text-[9px] font-black text-slate-500 uppercase tracking-widest">#${d.orderId}</span>
+                                <span class="bg-orange-500 text-white px-3 py-1 rounded-full text-[8px] font-black uppercase">${d.status}</span>
                             </div>
-                            <h3 class="font-black text-lg mb-4 italic">${Object.values(d.items).map(i => i.name).join(', ')}</h3>
-                            <div class="bg-slate-50 p-4 rounded-2xl mb-4">
-                                <p class="font-black text-sm">${d.customer.name}</p>
-                                <p class="text-[11px] text-gray-500 font-bold">${d.address}</p>
+                            
+                            <div class="bg-white/5 p-4 rounded-2xl mb-4">
+                                <p class="text-xs font-black text-green-400 mb-1">${d.customer.name}</p>
+                                <p class="text-[10px] text-slate-300 font-bold mb-2"><i class="fa-solid fa-location-dot mr-1"></i> ${d.address}</p>
+                                <p class="text-[9px] text-slate-500 italic uppercase">Items: ${itemsList}</p>
                             </div>
+
+                            <div class="flex justify-between items-center mb-6">
+                                <div><p class="text-lg font-black text-white">₹${d.total}</p><p class="text-[8px] font-bold text-slate-500 uppercase">${d.payment}</p></div>
+                                <button onclick="window.open('tel:${d.customer.phone}')" class="w-10 h-10 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center"><i class="fa-solid fa-phone"></i></button>
+                            </div>
+
                             <div class="flex gap-2">
-                                <button onclick="openNavigation('${d.address}')" class="flex-1 bg-slate-800 text-white p-4 rounded-2xl font-black text-xs uppercase">Navigate</button>
-                                ${d.status === 'PENDING' ? `<button onclick="acceptOrder('${doc.id}')" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Accept</button>` : ''}
-                                ${d.status === 'ACCEPTED' ? `<button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Deliver</button>` : ''}
+                                <button onclick="openMaps('${d.address}')" class="flex-1 bg-white/5 border border-white/10 py-4 rounded-2xl font-black text-[10px] uppercase tracking-wider">Navigate</button>
+                                
+                                ${d.status === 'PENDING' ? `
+                                    <button onclick="acceptOrder('${doc.id}')" class="flex-[1.5] bg-green-600 py-4 rounded-2xl font-black text-[10px] uppercase tracking-wider shadow-lg shadow-green-900/20">Accept Job</button>
+                                ` : ''}
+
+                                ${d.status === 'ACCEPTED' && d.riderId === currentRider.id ? `
+                                    <button onclick="completeOrder('${doc.id}')" class="flex-[1.5] bg-blue-600 py-4 rounded-2xl font-black text-[10px] uppercase tracking-wider shadow-lg shadow-blue-900/20">Mark Delivered</button>
+                                ` : ''}
                             </div>
                         </div>`;
                 });
@@ -136,16 +139,38 @@
         }
 
         async function acceptOrder(id) {
-            await db.collection("orders").doc(id).update({
-                status: "ACCEPTED",
-                riderId: currentRider.id,
-                riderName: currentRider.name,
-                riderPhone: currentRider.phone
-            });
+            try {
+                await db.collection("orders").doc(id).update({
+                    status: "ACCEPTED",
+                    riderId: currentRider.id,
+                    riderName: currentRider.name,
+                    riderPhone: currentRider.phone
+                });
+            } catch(e) { alert("Could not accept order."); }
         }
 
-        async function updateStatus(id, s) { await db.collection("orders").doc(id).update({ status: s }); }
-        function switchTab(t) { currentTab = t; loadOrders(); }
+        async function completeOrder(id) {
+            if(confirm("Confirm delivery? Money will be added to your wallet.")) {
+                await db.collection("orders").doc(id).update({ status: "DELIVERED" });
+            }
+        }
+
+        function openMaps(address) {
+            // Extracts GPS from the address string (House No..., GPS: 14.xxx, 77.xxx)
+            const coords = address.split('GPS: ')[1];
+            if(coords) {
+                window.open(`https://www.google.com/maps/search/?api=1&query=${coords}`, '_blank');
+            } else {
+                window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`, '_blank');
+            }
+        }
+
+        function switchTab(t) {
+            currentTab = t;
+            document.getElementById('tab-active').className = t === 'active' ? 'flex-1 py-3 font-black text-[10px] uppercase rounded-full bg-green-600' : 'flex-1 py-3 font-black text-[10px] uppercase rounded-full bg-slate-800 text-slate-400';
+            document.getElementById('tab-history').className = t === 'history' ? 'flex-1 py-3 font-black text-[10px] uppercase rounded-full bg-green-600' : 'flex-1 py-3 font-black text-[10px] uppercase rounded-full bg-slate-800 text-slate-400';
+            loadOrders();
+        }
     </script>
 </body>
 </html>
