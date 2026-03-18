@@ -11,8 +11,9 @@
     <style>
         .blinkit-yellow { background-color: #F7CB45; }
         .hide-scroll::-webkit-scrollbar { display: none; }
-        .cat-card:active { transform: scale(0.95); transition: 0.1s; }
         .active-cat { border: 2px solid #15803d !important; background-color: #f0fdf4; }
+        @keyframes pulse-green { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .live-dot { animation: pulse-green 1.5s infinite; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-900 pb-32">
@@ -23,7 +24,7 @@
                 <i class="fa-solid fa-location-dot"></i>
                 <div class="overflow-hidden">
                     <h1 class="text-lg font-black italic leading-none">Village Express</h1>
-                    <p id="addr-display" class="text-[10px] font-bold truncate w-32">Kalyandurg, Anantapur...</p>
+                    <p id="addr-display" class="text-[10px] font-bold truncate w-32">Kalyandurg...</p>
                 </div>
             </div>
             <button onclick="openProfile()" class="bg-white/20 p-2 rounded-full w-10 h-10 flex items-center justify-center shadow-inner">
@@ -32,91 +33,85 @@
         </div>
         <div class="relative bg-white rounded-xl flex items-center px-4 py-3 shadow-sm">
             <i class="fa-solid fa-search text-gray-400 mr-3"></i>
-            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search "milk", "tomato" or "curry leaves"' class="w-full outline-none text-sm font-medium bg-transparent">
+            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search items in Kalyandurg...' class="w-full outline-none text-sm font-medium bg-transparent">
         </div>
     </header>
 
     <div id="live-status-bar" class="hidden m-4 p-4 bg-white border-2 border-green-500 rounded-2xl flex items-center justify-between shadow-md">
         <div class="flex items-center gap-3">
-            <i class="fa-solid fa-truck-fast text-green-600 text-xl animate-pulse"></i>
+            <div class="relative">
+                <i class="fa-solid fa-truck-fast text-green-600 text-xl"></i>
+                <div class="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full live-dot"></div>
+            </div>
             <div>
-                <p class="text-[10px] font-black uppercase text-green-700">Order is Active</p>
+                <p class="text-[10px] font-black uppercase text-green-700">Arriving in 12 mins</p>
                 <p id="active-order-id" class="text-[9px] text-gray-400 font-bold">#ORD...</p>
             </div>
         </div>
-        <div class="flex gap-2">
-            <a href="tel:8328016917" class="bg-green-600 text-white p-2 rounded-full w-8 h-8 flex items-center justify-center"><i class="fa-solid fa-phone text-[10px]"></i></a>
-            <button onclick="openProfile()" class="text-[9px] font-black bg-green-100 text-green-700 px-3 py-1 rounded-full uppercase">Details</button>
-        </div>
+        <button onclick="openProfile()" class="text-[9px] font-black bg-green-100 text-green-700 px-3 py-1 rounded-full uppercase">Track</button>
     </div>
 
     <section class="p-4 bg-white">
-        <h3 class="text-xs font-black uppercase text-gray-400 mb-4">Shop by Category</h3>
         <div class="grid grid-cols-4 gap-4">
-            <div onclick="filterItems('Vegetables')" class="cat-card text-center">
-                <div class="aspect-square bg-green-50 rounded-2xl flex items-center justify-center mb-1 border border-green-100">
-                    <img src="https://cdn-icons-png.flaticon.com/128/2329/2329865.png" class="w-8 h-8">
-                </div>
-                <p class="text-[9px] font-black leading-tight">Vegetables</p>
+            <div onclick="filterItems('Vegetables')" class="text-center">
+                <div class="aspect-square bg-green-50 rounded-2xl flex items-center justify-center mb-1 border border-green-100"><img src="https://cdn-icons-png.flaticon.com/128/2329/2329865.png" class="w-8 h-8"></div>
+                <p class="text-[9px] font-black">Vegetables</p>
             </div>
-            <div onclick="filterItems('Fruits')" class="cat-card text-center">
-                <div class="aspect-square bg-orange-50 rounded-2xl flex items-center justify-center mb-1 border border-orange-100">
-                    <img src="https://cdn-icons-png.flaticon.com/128/3194/3194766.png" class="w-8 h-8">
-                </div>
-                <p class="text-[9px] font-black leading-tight">Fruits</p>
+            <div onclick="filterItems('Dairy')" class="text-center">
+                <div class="aspect-square bg-blue-50 rounded-2xl flex items-center justify-center mb-1 border border-blue-100"><img src="https://cdn-icons-png.flaticon.com/128/2674/2674486.png" class="w-8 h-8"></div>
+                <p class="text-[9px] font-black">Dairy</p>
             </div>
-            <div onclick="filterItems('Dairy')" class="cat-card text-center">
-                <div class="aspect-square bg-blue-50 rounded-2xl flex items-center justify-center mb-1 border border-blue-100">
-                    <img src="https://cdn-icons-png.flaticon.com/128/2674/2674486.png" class="w-8 h-8">
-                </div>
-                <p class="text-[9px] font-black leading-tight">Dairy & Milk</p>
+            <div onclick="filterItems('Fruits')" class="text-center">
+                <div class="aspect-square bg-orange-50 rounded-2xl flex items-center justify-center mb-1 border border-orange-100"><img src="https://cdn-icons-png.flaticon.com/128/3194/3194766.png" class="w-8 h-8"></div>
+                <p class="text-[9px] font-black">Fruits</p>
             </div>
-            <div onclick="filterItems('All')" class="cat-card text-center">
-                <div class="aspect-square bg-gray-50 rounded-2xl flex items-center justify-center mb-1 border border-gray-100">
-                    <i class="fa-solid fa-border-all text-gray-400"></i>
-                </div>
-                <p class="text-[9px] font-black leading-tight">View All</p>
+            <div onclick="filterItems('All')" class="text-center">
+                <div class="aspect-square bg-gray-50 rounded-2xl flex items-center justify-center mb-1 border border-gray-100"><i class="fa-solid fa-grid-2 text-gray-400"></i></div>
+                <p class="text-[9px] font-black">All</p>
             </div>
         </div>
     </section>
 
     <main class="p-4">
-        <div class="flex justify-between items-center mb-4">
-            <h3 id="cat-title" class="text-sm font-black italic">Fresh Items</h3>
-        </div>
         <div id="items-grid" class="grid grid-cols-2 gap-3"></div>
     </main>
 
     <div id="profile-view" class="fixed inset-0 bg-gray-50 z-[100] hidden overflow-y-auto">
         <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white z-10">
             <button onclick="closeProfile()"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 class="font-black">Your account</h2>
+            <h2 class="font-black">Account</h2>
         </div>
         <div class="p-6 text-center bg-white mb-2">
-            <div class="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl text-slate-400">
-                <i class="fa-solid fa-user"></i>
-            </div>
+            <div class="w-20 h-20 bg-slate-100 rounded-full mx-auto mb-3 flex items-center justify-center text-3xl text-slate-400"><i class="fa-solid fa-user"></i></div>
             <h3 class="font-black text-lg">Golla Ashok</h3>
-            <p class="text-[10px] font-bold text-gray-400 tracking-widest">8328016917</p>
+            <p class="text-[10px] font-bold text-gray-400">8328016917</p>
         </div>
+        
         <div class="bg-white mb-2 divide-y">
-            <div class="p-4 flex items-center justify-between">
+            <div onclick="toggleAddressBook()" class="p-4 flex items-center justify-between active:bg-gray-50">
                 <div class="flex items-center gap-4 text-sm font-bold"><i class="fa-solid fa-location-dot text-gray-400"></i> Address Book</div>
                 <i class="fa-solid fa-chevron-right text-gray-300 text-xs"></i>
             </div>
+            <div id="address-list" class="hidden p-4 bg-gray-50 text-xs font-bold space-y-2">
+                <div class="p-3 bg-white border rounded-xl flex justify-between items-center">
+                    <span>🏠 Home: Kalyandurg Main Rd</span>
+                    <i class="fa-solid fa-circle-check text-green-600"></i>
+                </div>
+            </div>
         </div>
+
         <div id="history-list" class="bg-white p-4 space-y-4 mb-20">
             <h3 class="text-[10px] font-black uppercase text-gray-400">Past Orders</h3>
         </div>
     </div>
 
     <div id="order-detail-view" class="fixed inset-0 bg-white z-[150] hidden overflow-y-auto">
-        <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
+        <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white shadow-sm">
             <div class="flex items-center gap-4">
                 <button onclick="closeOrderDetail()"><i class="fa-solid fa-arrow-left"></i></button>
-                <h2 class="font-black">Order summary</h2>
+                <h2 class="font-black">Order Summary</h2>
             </div>
-            <button id="cancel-btn-main" class="text-red-500 text-[10px] font-black uppercase hidden" onclick="cancelOrder()">Cancel Order</button>
+            <button id="cancel-btn-main" class="text-red-500 text-[10px] font-black uppercase" onclick="cancelOrder()">Cancel</button>
         </div>
         <div id="detail-content" class="p-4 space-y-6"></div>
     </div>
@@ -124,34 +119,34 @@
     <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
         <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center">
             <div class="text-left leading-none">
-                <p id="cart-count" class="text-[9px] opacity-80 uppercase mb-1">0 ITEMS</p>
+                <p id="cart-count" class="text-[9px] mb-1">0 ITEMS</p>
                 <p id="cart-total-bar" class="text-sm">₹0</p>
             </div>
-            <span class="text-xs font-black italic">PROCEED TO PAY <i class="fa-solid fa-chevron-right ml-1"></i></span>
+            <span class="text-xs font-black">PROCEED <i class="fa-solid fa-chevron-right ml-1"></i></span>
         </button>
     </div>
 
     <div id="checkout-view" class="fixed inset-0 bg-white z-[120] hidden overflow-y-auto">
         <div class="p-4 border-b flex items-center gap-4 sticky top-0 bg-white">
             <button onclick="hideCheckout()"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 class="font-black">Checkout</h2>
+            <h2 class="font-black">Final Step</h2>
         </div>
         <div class="p-4 space-y-6 pb-20">
             <div id="checkout-items" class="space-y-4"></div>
             <div class="bg-gray-50 p-6 rounded-3xl">
                 <div class="space-y-2 text-xs font-bold text-gray-600">
-                    <div class="flex justify-between"><span>Item Total</span><span id="bill-sub">₹0</span></div>
-                    <div class="flex justify-between"><span>Handling charge</span><span>+₹5</span></div>
+                    <div class="flex justify-between"><span>Subtotal</span><span id="bill-sub">₹0</span></div>
+                    <div class="flex justify-between"><span>Handling</span><span>+₹5</span></div>
                     <div class="flex justify-between text-base font-black text-slate-900 pt-3 border-t mt-2">
-                        <span>Total Bill</span><span id="bill-grand">₹0</span>
+                        <span>Grand Total</span><span id="bill-grand">₹0</span>
                     </div>
                 </div>
             </div>
             <div class="space-y-3">
                 <input type="text" id="cust-name" placeholder="Name" class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none">
-                <textarea id="manual-address" placeholder="Delivery Address..." class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none" rows="2"></textarea>
+                <textarea id="manual-address" placeholder="Deliver to..." class="w-full bg-gray-50 border rounded-xl p-3 text-xs font-bold outline-none" rows="2"></textarea>
             </div>
-            <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase">Place Order</button>
+            <button id="confirm-btn" onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase">Confirm Order</button>
         </div>
     </div>
 
@@ -177,17 +172,12 @@
                 const qty = cart[p.id]?.qty || 0;
                 grid.innerHTML += `
                     <div class="bg-white border rounded-2xl p-3 flex flex-col justify-between shadow-sm">
-                        <div class="aspect-square bg-gray-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
-                            <img src="${p.image || ''}" class="w-full h-full object-contain p-2">
-                        </div>
+                        <div class="aspect-square bg-gray-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-contain p-2"></div>
                         <p class="font-black text-[11px] h-8 overflow-hidden">${p.name}</p>
                         <div class="flex justify-between items-center mt-2">
                             <p class="text-[12px] font-black">₹${p.price}</p>
-                            ${qty === 0 ? 
-                            `<button onclick="updateQty('${p.id}', 1)" class="border border-green-600 text-green-600 px-4 py-1 rounded-lg text-[10px] font-black uppercase">Add</button>` :
-                            `<div class="flex items-center gap-3 bg-green-600 text-white px-2 py-1 rounded-lg font-black text-[10px]">
-                                <button onclick="updateQty('${p.id}', -1)">-</button><span>${qty}</span><button onclick="updateQty('${p.id}', 1)">+</button>
-                            </div>`}
+                            ${qty === 0 ? `<button onclick="updateQty('${p.id}', 1)" class="border border-green-600 text-green-600 px-4 py-1 rounded-lg text-[10px] font-black uppercase">Add</button>` :
+                            `<div class="flex items-center gap-3 bg-green-600 text-white px-2 py-1 rounded-lg font-black text-[10px]"><button onclick="updateQty('${p.id}', -1)">-</button><span>${qty}</span><button onclick="updateQty('${p.id}', 1)">+</button></div>`}
                         </div>
                     </div>`;
             });
@@ -228,12 +218,13 @@
             const total = parseInt(document.getElementById('bill-grand').innerText.replace('₹',''));
             
             await db.collection("orders").add({
-                orderId: oid, items: cart, total: total, status: "CONFIRMED",
+                orderId: oid, items: cart, total: total, status: "ACCEPTED",
                 customer: { name: document.getElementById('cust-name').value, mobile: "8328016917" },
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(), address: document.getElementById('manual-address').value
             });
 
             localStorage.setItem('active_order', oid);
+            alert("Order Accepted! Delivery in 15 mins.");
             window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${total}&cu=INR&tn=${oid}`;
         }
 
@@ -241,23 +232,33 @@
             const doc = await db.collection("orders").doc(docId).get();
             const d = doc.data();
             currentViewingDocId = docId;
-            document.getElementById('cancel-btn-main').classList.toggle('hidden', d.status === 'CANCELLED');
             
-            let itemsList = Object.values(d.items).map(i => `<div class="flex justify-between text-xs py-1 border-b border-dashed"><span>${i.name} (x${i.qty})</span><span>₹${i.price * i.qty}</span></div>`).join('');
+            // HIDE CANCEL IF DELIVERED OR CANCELLED
+            const canCancel = (d.status !== 'DELIVERED' && d.status !== 'CANCELLED');
+            document.getElementById('cancel-btn-main').style.display = canCancel ? 'block' : 'none';
+            
+            let itemsList = Object.values(d.items).map(i => `<div class="flex justify-between text-xs py-1"><span>${i.name} (x${i.qty})</span><span>₹${i.price * i.qty}</span></div>`).join('');
             
             document.getElementById('detail-content').innerHTML = `
-                <div class="bg-white p-4 rounded-2xl border shadow-sm">
-                    <p class="text-[10px] font-black uppercase text-gray-400">Order ID: ${d.orderId}</p>
+                ${d.status === 'ACCEPTED' ? `
+                <div class="w-full h-32 bg-slate-100 rounded-2xl flex flex-col items-center justify-center border-2 border-dashed border-gray-300 relative overflow-hidden">
+                    <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#000 1px, transparent 1px); background-size: 10px 10px;"></div>
+                    <i class="fa-solid fa-map-location-dot text-gray-300 text-3xl mb-2"></i>
+                    <p class="text-[10px] font-black text-gray-400 uppercase">Live Rider Tracking (Kalyandurg)</p>
+                    <div class="absolute top-1/2 left-1/4 w-3 h-3 bg-blue-600 rounded-full border-2 border-white animate-bounce shadow-lg"></div>
+                </div>` : ''}
+
+                <div class="bg-white p-4 rounded-2xl border">
+                    <p class="text-[10px] font-black text-gray-400 uppercase">Order Status</p>
                     <h3 class="text-xl font-black ${d.status === 'CANCELLED' ? 'text-red-600' : 'text-green-700'}">${d.status}</h3>
+                    <p class="text-[9px] text-gray-400 font-bold">Arriving in ${d.status === 'ACCEPTED' ? '12-15' : '0'} mins</p>
                 </div>
-                <div class="space-y-2">${itemsList}</div>
-                <div class="bg-gray-50 p-4 rounded-xl text-xs font-bold">
-                    <div class="flex justify-between"><span>Bill Total</span><span>₹${d.total}</span></div>
-                    <div class="flex justify-between mt-2 pt-2 border-t"><span>Delivery Address</span><span class="text-right w-1/2">${d.address || 'N/A'}</span></div>
-                </div>
+
+                <div class="space-y-2 border-b border-dashed pb-4">${itemsList}</div>
+                
                 <div class="p-4 bg-blue-50 border border-blue-100 rounded-2xl flex justify-between items-center">
-                    <div><p class="text-[9px] font-black text-blue-600 uppercase">Rider</p><p class="text-xs font-black">Golla Ashok (Test)</p></div>
-                    <a href="tel:8328016917" class="bg-blue-600 text-white p-2 rounded-full"><i class="fa-solid fa-phone"></i></a>
+                    <div><p class="text-[9px] font-black text-blue-600 uppercase">Delivery Rider</p><p class="text-xs font-black">Golla Ashok (8328016917)</p></div>
+                    <a href="tel:8328016917" class="bg-blue-600 text-white p-2 rounded-full w-9 h-9 flex items-center justify-center"><i class="fa-solid fa-phone"></i></a>
                 </div>`;
             document.getElementById('order-detail-view').classList.remove('hidden');
         }
@@ -270,14 +271,16 @@
             }
         }
 
+        function toggleAddressBook() { document.getElementById('address-list').classList.toggle('hidden'); }
+
         function openHistory() {
             db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
                 const list = document.getElementById('history-list');
-                list.innerHTML = `<h3 class="text-[10px] font-black uppercase text-gray-400">Past Orders</h3>`;
+                list.innerHTML = `<h3 class="text-[10px] font-black text-gray-400">Past Orders</h3>`;
                 snap.forEach(doc => {
                     const d = doc.data();
-                    list.innerHTML += `<div onclick="showOrderDetail('${doc.id}')" class="bg-gray-50 p-4 rounded-2xl border flex justify-between items-center">
-                        <div><p class="text-[10px] font-black text-green-600 uppercase">${d.status}</p><p class="text-xs font-black">₹${d.total} • ${d.orderId}</p></div>
+                    list.innerHTML += `<div onclick="showOrderDetail('${doc.id}')" class="bg-gray-50 p-4 rounded-2xl border mb-2 flex justify-between items-center">
+                        <div><p class="text-[9px] font-black ${d.status === 'CANCELLED' ? 'text-red-500' : 'text-green-600'} uppercase">${d.status}</p><p class="text-xs font-black">₹${d.total} • ${d.orderId}</p></div>
                         <i class="fa-solid fa-chevron-right text-gray-300"></i>
                     </div>`;
                 });
@@ -293,10 +296,7 @@
         function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
         function closeOrderDetail() { document.getElementById('order-detail-view').classList.add('hidden'); }
         function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
-        function filterItems(c) { 
-            document.getElementById('cat-title').innerText = c;
-            renderItems(c === 'All' ? allProducts : allProducts.filter(p => p.category === c)); 
-        }
+        function filterItems(c) { renderItems(c === 'All' ? allProducts : allProducts.filter(p => p.category === c)); }
         function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
     </script>
 </body>
