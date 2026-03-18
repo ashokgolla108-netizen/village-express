@@ -14,6 +14,7 @@
         .auth-screen.active { display: block; }
         input, textarea, select { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; background: #f8fafc; outline: none; }
         .btn-primary { background: #15803d; color: white; font-weight: 900; text-transform: uppercase; padding: 16px; border-radius: 16px; width: 100%; }
+        .qty-btn { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-weight: bold; }
     </style>
 </head>
 <body class="bg-gray-50 text-slate-900 pb-32">
@@ -59,33 +60,37 @@
     <main class="p-4"><div id="items-grid" class="grid grid-cols-2 gap-4"></div></main>
 
     <div id="checkout-view" class="fixed inset-0 bg-white z-[150] hidden overflow-y-auto">
-        <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
-            <div class="flex items-center gap-4"><button onclick="closeCheckout()"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black">Checkout</h2></div>
+        <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white shadow-sm">
+            <div class="flex items-center gap-4"><button onclick="closeCheckout()"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black">Checkout Summary</h2></div>
         </div>
         <div class="p-5 space-y-6">
-            <div id="checkout-summary" class="bg-gray-50 p-4 rounded-2xl space-y-2 text-sm font-bold"></div>
+            <div id="checkout-items-list" class="space-y-3 bg-slate-50 p-4 rounded-2xl border border-slate-100"></div>
             
-            <input type="text" id="order-name" placeholder="Name">
-            <input type="tel" id="order-phone" placeholder="Mobile">
-            
-            <div class="flex justify-between items-center"><p class="text-[10px] font-black uppercase text-slate-400">Delivery Address</p><button onclick="getCurrentLocation(this)" class="text-[10px] font-black text-blue-600 uppercase">Get Precise GPS</button></div>
-            <input type="text" id="order-building" placeholder="Flat/Building Name">
-            <textarea id="order-address" placeholder="Address will appear here..." rows="3"></textarea>
-            
-            <p class="text-[10px] font-black uppercase text-slate-400">Payment</p>
-            <select id="payment-method">
-                <option value="COD">Cash on Delivery (COD)</option>
-                <option value="UPI">PhonePe / GPay / UPI</option>
-            </select>
+            <div id="checkout-bill-details" class="px-2 space-y-1"></div>
 
-            <input type="hidden" id="gps-coords" value="">
-            <button onclick="placeOrder()" class="btn-primary bg-green-700">Confirm Order</button>
+            <div class="space-y-4 pt-4 border-t">
+                <input type="text" id="order-name" placeholder="Customer Name">
+                <input type="tel" id="order-phone" placeholder="Contact Number">
+                
+                <div class="flex justify-between items-center"><p class="text-[10px] font-black uppercase text-slate-400">Delivery Location</p><button onclick="getCurrentLocation(this)" class="text-[10px] font-black text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded">Get High Accuracy GPS</button></div>
+                <input type="text" id="order-building" placeholder="House No / Street Name">
+                <textarea id="order-address" placeholder="Wait for GPS or type Landmark..." rows="3"></textarea>
+                
+                <p class="text-[10px] font-black uppercase text-slate-400">Payment</p>
+                <select id="payment-method">
+                    <option value="COD">Cash on Delivery (COD)</option>
+                    <option value="UPI">UPI (PhonePe / GPay)</option>
+                </select>
+
+                <input type="hidden" id="gps-coords" value="">
+                <button onclick="placeOrder()" class="btn-primary bg-green-700 shadow-lg">Confirm Order</button>
+            </div>
         </div>
     </div>
 
     <div id="profile-view" class="fixed inset-0 bg-gray-50 z-[100] hidden overflow-y-auto">
         <div class="p-4 border-b flex items-center justify-between sticky top-0 bg-white">
-            <div class="flex items-center gap-4"><button onclick="closeProfile()"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black italic">My Orders</h2></div>
+            <div class="flex items-center gap-4"><button onclick="closeProfile()"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black italic">Order Summary</h2></div>
             <button onclick="handleLogout()" class="text-red-500 text-[10px] font-black uppercase">Logout</button>
         </div>
         <div id="history-list" class="p-4 space-y-4"></div>
@@ -93,8 +98,8 @@
 
     <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-[60] hidden">
         <button onclick="openCheckout()" class="w-full bg-green-800 text-white flex justify-between p-5 rounded-2xl font-black shadow-2xl items-center">
-            <div class="text-left"><p id="cart-count" class="text-[9px] opacity-70">0 ITEMS</p><p id="cart-total-bar" class="text-base">₹0</p></div>
-            <span class="text-xs uppercase">View Bill <i class="fa-solid fa-chevron-right ml-1"></i></span>
+            <div class="text-left"><p id="cart-count" class="text-[9px] opacity-70 uppercase tracking-widest">Cart Items</p><p id="cart-total-bar" class="text-lg">₹0</p></div>
+            <span class="text-xs uppercase bg-white/20 px-3 py-1 rounded-lg italic">View Bill <i class="fa-solid fa-chevron-right ml-1"></i></span>
         </button>
     </div>
 
@@ -113,19 +118,18 @@
         async function handleLogin() {
             const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
             const s = await db.collection("users").where("phone","==",p).where("pass","==",pw).get();
-            if(s.empty) return alert("Wrong Credentials"); currentUser = s.docs[0].data(); localStorage.setItem('user_session', JSON.stringify(currentUser)); location.reload();
+            if(s.empty) return alert("Error"); currentUser = s.docs[0].data(); localStorage.setItem('user_session', JSON.stringify(currentUser)); location.reload();
         }
 
         async function handleRegister() {
             const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, d = document.getElementById('reg-dob').value, pw = document.getElementById('reg-pass').value;
-            if(!n || !p || !pw) return alert("Fill all fields");
-            await db.collection("users").add({ name:n, phone:p, dob:d, pass:pw }); alert("Registration Success!"); showAuth('login');
+            await db.collection("users").add({ name:n, phone:p, dob:d, pass:pw }); alert("Success"); showAuth('login');
         }
 
         async function handleForgot() {
             const p = document.getElementById('f-phone').value, n = document.getElementById('f-name').value, d = document.getElementById('f-dob').value;
             const s = await db.collection("users").where("phone","==",p).where("name","==",n).where("dob","==",d).get();
-            if(s.empty) return alert("Account Not Found"); alert("Your Password: " + s.docs[0].data().pass);
+            if(s.empty) return alert("Not Found"); alert("Password: " + s.docs[0].data().pass);
         }
 
         function handleLogout() { localStorage.removeItem('user_session'); location.reload(); }
@@ -136,19 +140,16 @@
             loadHistory();
         }
 
-        // Fixed Product Management
         function renderItems(list) {
             const grid = document.getElementById('items-grid'); grid.innerHTML = "";
             list.forEach(p => {
                 const qty = cart[p.id]?.qty || 0;
                 grid.innerHTML += `
                     <div class="bg-white border rounded-2xl p-3 shadow-sm">
-                        <div class="aspect-square bg-slate-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden">
-                            <img src="${p.image || ''}" class="w-full h-full object-contain p-2">
-                        </div>
-                        <p class="font-black text-[11px] truncate uppercase">${p.name}</p>
+                        <div class="aspect-square bg-slate-50 rounded-xl mb-2 flex items-center justify-center overflow-hidden"><img src="${p.image || ''}" class="w-full h-full object-contain p-2"></div>
+                        <p class="font-black text-[11px] truncate uppercase text-slate-600">${p.name}</p>
                         <div class="flex justify-between items-center mt-1">
-                            <p class="text-[12px] font-black">₹${p.price}</p>
+                            <p class="text-[13px] font-black">₹${p.price}</p>
                             ${qty === 0 ? `<button onclick="updateQty('${p.id}', 1)" class="border border-green-700 text-green-700 px-3 py-1 rounded-lg text-[10px] font-black">ADD</button>` :
                             `<div class="flex items-center gap-2 bg-green-700 text-white px-2 py-1 rounded-lg font-black text-[10px]">
                                 <button onclick="updateQty('${p.id}', -1)">-</button><span>${qty}</span><button onclick="updateQty('${p.id}', 1)">+</button>
@@ -156,15 +157,17 @@
                         </div>
                     </div>`;
             });
-            // Auto update checkout summary if open
-            if(!document.getElementById('checkout-view').classList.contains('hidden')) updateCheckoutSummary();
+            if(!document.getElementById('checkout-view').classList.contains('hidden')) renderCheckoutItems();
         }
 
         function updateQty(id, change) {
             const p = allProducts.find(x => x.id === id);
             if (!cart[id]) cart[id] = { name: p.name, price: Number(p.price), qty: 0 };
-            cart[id].qty += change; if (cart[id].qty <= 0) delete cart[id];
-            updateCartUI(); renderItems(allProducts);
+            cart[id].qty += change; 
+            if (cart[id].qty <= 0) delete cart[id];
+            updateCartUI(); 
+            renderItems(allProducts);
+            if(Object.keys(cart).length === 0) closeCheckout();
         }
 
         function updateCartUI() {
@@ -174,46 +177,74 @@
             document.getElementById('cart-count').innerText = `${count} ITEMS`;
         }
 
-        function updateCheckoutSummary() {
-            let sub = 0; Object.values(cart).forEach(i => sub += i.price * i.qty);
-            document.getElementById('checkout-summary').innerHTML = `
-                <div class="flex justify-between text-gray-500 font-bold uppercase text-[10px]"><span>Subtotal</span><span>₹${sub}</span></div>
-                <div class="flex justify-between text-gray-500 font-bold uppercase text-[10px]"><span>Handling Fee</span><span>₹5</span></div>
-                <div class="flex justify-between text-gray-900 border-t pt-2 text-lg font-black"><span>Total Bill</span><span>₹${sub+5}</span></div>`;
+        // 2) New Checkout Items Logic
+        function renderCheckoutItems() {
+            const listDiv = document.getElementById('checkout-items-list');
+            listDiv.innerHTML = "";
+            let subtotal = 0;
+            
+            Object.entries(cart).forEach(([id, item]) => {
+                subtotal += (item.price * item.qty);
+                listDiv.innerHTML += `
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <p class="font-black text-xs uppercase">${item.name}</p>
+                            <p class="text-[10px] text-gray-400 font-bold">₹${item.price} x ${item.qty}</p>
+                        </div>
+                        <div class="flex items-center gap-3 bg-white border px-2 py-1 rounded-xl shadow-sm">
+                            <button onclick="updateQty('${id}', -1)" class="text-red-500 font-black">-</button>
+                            <span class="text-xs font-black">${item.qty}</span>
+                            <button onclick="updateQty('${id}', 1)" class="text-green-700 font-black">+</button>
+                        </div>
+                    </div>`;
+            });
+
+            document.getElementById('checkout-bill-details').innerHTML = `
+                <div class="flex justify-between text-[10px] font-bold text-gray-400 uppercase"><span>Subtotal</span><span>₹${subtotal}</span></div>
+                <div class="flex justify-between text-[10px] font-bold text-gray-400 uppercase"><span>Handling Fee</span><span>₹5</span></div>
+                <div class="flex justify-between text-lg font-black pt-2"><span>Grand Total</span><span>₹${subtotal + 5}</span></div>`;
         }
 
         function openCheckout() {
             document.getElementById('order-name').value = currentUser.name;
             document.getElementById('order-phone').value = currentUser.phone;
-            updateCheckoutSummary();
+            renderCheckoutItems();
             document.getElementById('checkout-view').classList.remove('hidden');
         }
 
-        // 2) Precise GPS Fetching for Gonchireddypalli
+        // 1) Precise Location Logic
         async function getCurrentLocation(btn) {
             if (navigator.geolocation) {
-                btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Locating...";
+                btn.innerHTML = "<i class='fa-solid fa-spinner fa-spin'></i> Pinging Satellites...";
                 navigator.geolocation.getCurrentPosition(async (pos) => {
                     const lat = pos.coords.latitude, lon = pos.coords.longitude;
                     document.getElementById('gps-coords').value = `${lat}, ${lon}`;
                     try {
-                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&addressdetails=1`);
+                        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1`);
                         const data = await res.json();
-                        // Priority to precise village name
-                        const addr = data.display_name;
-                        document.getElementById('order-address').value = addr;
-                        btn.innerHTML = "GPS Locked ✅";
+                        // Forcing extra detail for smaller villages
+                        const village = data.address.village || data.address.suburb || data.address.neighbourhood || "";
+                        const road = data.address.road || "";
+                        document.getElementById('order-address').value = `${village} ${road}\n${data.display_name}`;
+                        btn.innerHTML = "Exact GPS Locked ✅";
                     } catch(e) { 
                         document.getElementById('order-address').value = `LAT: ${lat}, LON: ${lon}`;
-                        btn.innerHTML = "Fixed ✅"; 
+                        btn.innerHTML = "Coordinates Saved ✅"; 
                     }
-                }, (err) => { alert("Please enable GPS Location permission"); }, { enableHighAccuracy: true, timeout: 5000 });
+                }, (err) => {
+                    alert("Unable to get location. Please allow GPS permission in your browser.");
+                    btn.innerHTML = "GPS Failed ❌";
+                }, { 
+                    enableHighAccuracy: true, 
+                    timeout: 10000, 
+                    maximumAge: 0 
+                });
             }
         }
 
         async function placeOrder() {
             const b = document.getElementById('order-building').value, a = document.getElementById('order-address').value;
-            if(!b || !a) return alert("Please fill address details");
+            if(!b || !a) return alert("Fill precise address details");
             let sub = 0; Object.values(cart).forEach(i => sub += i.price * i.qty);
             const order = {
                 orderId: "ORD" + Math.floor(100000 + Math.random() * 900000),
@@ -226,51 +257,46 @@
                 status: "PENDING",
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
-            await db.collection("orders").add(order); alert("Order Placed Successfully!"); cart = {}; updateCartUI(); closeCheckout(); openProfile();
+            await db.collection("orders").add(order); alert("Order Placed!"); cart = {}; updateCartUI(); closeCheckout(); openProfile();
         }
 
         async function cancelOrder(id) {
-            if(confirm("Are you sure you want to cancel?")) {
+            if(confirm("Cancel order?")) {
                 await db.collection("orders").doc(id).update({ status: "CANCELLED" });
             }
         }
 
-        // 3) Blank Order Page Fix (Simplified Query)
         function loadHistory() {
             db.collection("orders").where("customer.user_phone", "==", currentUser.phone).onSnapshot(snap => {
                 const list = document.getElementById('history-list'); list.innerHTML = "";
-                if(snap.empty) { list.innerHTML = "<div class='text-center py-20 opacity-40 font-black'><i class='fa-solid fa-box-open text-4xl mb-2'></i><p>NO ORDERS YET</p></div>"; return; }
+                if(snap.empty) { list.innerHTML = "<p class='text-center py-20 text-gray-400 font-bold uppercase text-[10px]'>No history found</p>"; return; }
                 
-                // Sort locally to avoid Firebase Index requirement
+                // Sorting manually to ensure newest is at the top
                 const docs = snap.docs.sort((a, b) => b.data().timestamp - a.data().timestamp);
 
                 docs.forEach(doc => {
                     const d = doc.data();
-                    let itemsHtml = Object.values(d.items).map(i => `<div class="flex justify-between text-xs font-bold mb-1 uppercase"><span>${i.name} x${i.qty}</span><span>₹${i.price * i.qty}</span></div>`).join('');
+                    let itemsHtml = Object.values(d.items).map(i => `<div class="flex justify-between text-[11px] font-black uppercase mb-1"><span>${i.name} x${i.qty}</span><span>₹${i.price * i.qty}</span></div>`).join('');
                     
                     const showRider = (d.status === "ACCEPTED" || d.status === "REACHED");
                     const canCancel = (d.status === "PENDING");
 
                     list.innerHTML += `
-                        <div class="bg-white p-5 rounded-3xl border-2 border-slate-100 shadow-sm space-y-4">
+                        <div class="bg-white p-5 rounded-3xl border shadow-sm space-y-4">
                             <div class="flex justify-between items-start border-b pb-4">
-                                <div>
-                                    <p class="text-[9px] font-black text-gray-400 uppercase">#${d.orderId}</p>
-                                    <p class="text-xl font-black ${d.status==='CANCELLED'?'text-red-500':'text-green-700'}">${d.status}</p>
-                                    <span class="text-[8px] bg-slate-100 px-2 py-0.5 rounded font-black uppercase">${d.payment}</span>
-                                </div>
-                                ${canCancel ? `<button onclick="cancelOrder('${doc.id}')" class="text-red-500 text-[10px] font-black border-b-2 border-red-200">CANCEL</button>` : ''}
+                                <div><p class="text-[9px] font-black text-gray-400 uppercase tracking-tighter">Order #${d.orderId}</p><p class="text-xl font-black ${d.status==='CANCELLED'?'text-red-500':'text-green-700'} italic uppercase">${d.status}</p></div>
+                                ${canCancel ? `<button onclick="cancelOrder('${doc.id}')" class="text-red-500 text-[10px] font-black uppercase tracking-widest border-b border-red-200">Cancel</button>` : ''}
                             </div>
                             <div class="py-2 border-b border-dashed">${itemsHtml}</div>
-                            <div class="flex justify-between font-black text-lg"><span>Total Paid</span><span>₹${d.total}</span></div>
+                            <div class="bg-slate-50 p-3 rounded-xl flex justify-between font-black"><span>Total Bill</span><span>₹${d.total}</span></div>
                             
                             ${showRider ? `
-                            <div class="bg-blue-50 p-4 rounded-2xl flex justify-between items-center border border-blue-100">
-                                <div><p class="text-[8px] font-black text-blue-500 uppercase">Assigned Rider</p><p class="text-xs font-black">Golla Ashok (8328016917)</p></div>
+                            <div class="bg-blue-50 p-4 rounded-2xl flex justify-between items-center">
+                                <div><p class="text-[8px] font-black text-blue-500 uppercase">Your Rider</p><p class="text-xs font-black">Golla Ashok (8328016917)</p></div>
                                 <a href="tel:8328016917" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg"><i class="fa-solid fa-phone"></i></a>
                             </div>` : ''}
 
-                            <div class="text-[10px] font-bold text-gray-500"><p class="uppercase text-[8px] opacity-60">Delivery To</p><p>${d.customer.name}</p><p class="leading-tight">${d.address}</p></div>
+                            <div class="text-[10px] font-bold text-gray-400 leading-tight italic uppercase"><i class="fa-solid fa-location-crosshairs mr-1"></i> Delivery to: ${d.address}</div>
                         </div>`;
                 });
             });
@@ -279,7 +305,4 @@
         function closeCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
         function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); }
         function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
-        function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
-    </script>
-</body>
-</html>
+        function handleSearch(v) { ren
