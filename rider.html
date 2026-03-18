@@ -9,20 +9,16 @@
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-[#f8fafc] pb-20">
+<body class="bg-gray-50">
 
     <header class="bg-[#1a1f2c] p-6 text-white rounded-b-[40px] shadow-lg">
         <div class="flex justify-between items-center mb-6">
-            <div>
-                <h1 class="text-2xl font-black italic">Rider Portal</h1>
-                <p id="rider-name" class="text-[10px] text-gray-400 uppercase font-bold tracking-widest">---</p>
-            </div>
-            <button onclick="handleLogout()" class="bg-white/10 p-3 rounded-2xl"><i class="fa-solid fa-power-off text-red-400"></i></button>
+            <h1 class="text-2xl font-black italic">Rider Portal</h1>
+            <button onclick="localStorage.removeItem('rider_session'); location.reload();" class="bg-white/10 p-3 rounded-2xl"><i class="fa-solid fa-power-off"></i></button>
         </div>
-        
         <div class="grid grid-cols-2 gap-4">
             <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
-                <p class="text-[9px] uppercase font-black text-gray-400">Today's Earnings</p>
+                <p class="text-[9px] uppercase font-black text-gray-400">Earnings</p>
                 <p id="stat-earnings" class="text-2xl font-black text-green-400">₹0</p>
             </div>
             <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
@@ -32,99 +28,89 @@
         </div>
     </header>
 
-    <div class="flex px-6 mt-6 border-b bg-white sticky top-0 z-10">
-        <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-[10px] uppercase border-b-2 border-green-500 text-green-500">Active Tasks</button>
-        <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-[10px] uppercase text-gray-400">History</button>
+    <div class="flex px-6 mt-4 border-b bg-white sticky top-0 z-10">
+        <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs uppercase border-b-2 border-green-500 text-green-500">Active</button>
+        <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs uppercase text-gray-400">History</button>
     </div>
 
     <main id="order-list" class="p-4 space-y-4"></main>
 
     <script>
-        // Use your existing Firebase Config here
         const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };
         firebase.initializeApp(config);
         const db = firebase.firestore();
 
-        let currentRider = JSON.parse(localStorage.getItem('rider_session')) || { id: "R1", name: "Golla Ashok", phone: "8328016917" };
+        // FALLBACK: If no session, create a temporary one so it doesn't redirect and 404
+        let currentRider = JSON.parse(localStorage.getItem('rider_session'));
+        if (!currentRider) {
+            currentRider = { id: "RIDER_1", name: "Golla Ashok", phone: "8328016917" };
+            localStorage.setItem('rider_session', JSON.stringify(currentRider));
+        }
+
         let currentTab = 'active';
 
-        window.onload = () => { 
-            document.getElementById('rider-name').innerText = currentRider.name; 
-            updateStats();
-            loadOrders(); 
-        };
+        window.onload = () => { loadOrders(); updateStats(); };
 
         function loadOrders() {
             db.collection("orders").onSnapshot(snap => {
                 const list = document.getElementById('order-list');
                 list.innerHTML = "";
-                
                 snap.docs.forEach(doc => {
                     const d = doc.data();
                     const isHistory = (d.status === "DELIVERED" || d.status === "CANCELLED");
-
-                    // Filter based on tab
                     if(currentTab === 'active' && isHistory) return;
                     if(currentTab === 'history' && !isHistory) return;
 
                     list.innerHTML += `
-                        <div class="bg-white p-6 rounded-[32px] border shadow-sm border-gray-100">
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="text-[9px] font-black text-gray-300">#${d.orderId}</span>
-                                <span class="px-3 py-1 rounded-full text-[9px] font-black uppercase ${d.status === 'PENDING' ? 'bg-orange-50 text-orange-500' : 'bg-green-50 text-green-600'}">${d.status}</span>
+                        <div class="bg-white p-5 rounded-[32px] border shadow-sm">
+                            <div class="flex justify-between items-center mb-3">
+                                <span class="text-[10px] font-black text-gray-300">#${d.orderId}</span>
+                                <span class="text-[10px] font-black uppercase text-orange-500">${d.status}</span>
                             </div>
-
-                            <h3 class="font-black text-lg mb-4 italic text-slate-800">${Object.values(d.items).map(i => i.name).join(', ')}</h3>
+                            <h2 class="font-black text-lg italic mb-4">${Object.values(d.items).map(i => i.name).join(', ')}</h2>
                             
-                            <div class="bg-slate-50 p-4 rounded-2xl mb-4 border border-gray-100 flex justify-between items-center">
+                            <div class="bg-blue-50/50 p-4 rounded-2xl mb-4 border border-blue-100 flex justify-between items-center">
                                 <div>
-                                    <p class="font-black text-sm text-slate-800">${d.customer.name}</p>
-                                    <p class="text-[10px] text-gray-500 font-bold mt-1">${d.address}</p>
+                                    <p class="font-black text-sm">${d.customer.name}</p>
+                                    <p class="text-[10px] text-gray-500">${d.address}</p>
                                 </div>
                                 <a href="tel:${d.customer.phone}" class="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-md"><i class="fa-solid fa-phone"></i></a>
                             </div>
 
                             <div class="flex gap-2">
-                                <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}')" class="flex-1 bg-slate-800 text-white p-4 rounded-2xl font-black text-xs uppercase tracking-widest">Navigate</button>
-                                ${d.status === 'PENDING' ? `<button onclick="acceptOrder('${doc.id}')" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Accept</button>` : ''}
-                                ${d.status === 'ACCEPTED' ? `<button onclick="completeOrder('${doc.id}')" class="flex-1 bg-green-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Delivered</button>` : ''}
+                                <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}')" class="flex-1 bg-slate-800 text-white p-4 rounded-2xl font-black text-[10px] uppercase">Navigate</button>
+                                ${d.status === 'PENDING' ? `<button onclick="updateStatus('${doc.id}', 'ACCEPTED')" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black text-[10px] uppercase">Accept</button>` : ''}
+                                ${d.status === 'ACCEPTED' ? `<button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white p-4 rounded-2xl font-black text-[10px] uppercase">Delivered</button>` : ''}
                             </div>
                         </div>`;
                 });
             });
         }
 
-        async function acceptOrder(id) {
-            await db.collection("orders").doc(id).update({
-                status: "ACCEPTED",
-                riderId: currentRider.id,
-                riderName: currentRider.name,
-                riderPhone: currentRider.phone
-            });
-        }
-
-        async function completeOrder(id) {
-            await db.collection("orders").doc(id).update({ status: "DELIVERED" });
+        async function updateStatus(id, s) {
+            let updateData = { status: s };
+            if(s === 'ACCEPTED') {
+                updateData.riderId = currentRider.id;
+                updateData.riderName = currentRider.name;
+                updateData.riderPhone = currentRider.phone;
+            }
+            await db.collection("orders").doc(id).update(updateData);
             updateStats();
         }
 
         function updateStats() {
             db.collection("orders").where("riderId", "==", currentRider.id).where("status", "==", "DELIVERED").get().then(snap => {
                 document.getElementById('stat-orders').innerText = snap.size;
-                document.getElementById('stat-earnings').innerText = `₹${snap.size * 40}`; // Example ₹40 per delivery
+                document.getElementById('stat-earnings').innerText = `₹${snap.size * 40}`;
             });
         }
 
         function switchTab(t) {
             currentTab = t;
-            document.getElementById('tab-active').classList.toggle('text-green-500', t === 'active');
-            document.getElementById('tab-active').classList.toggle('border-green-500', t === 'active');
-            document.getElementById('tab-history').classList.toggle('text-green-500', t === 'history');
-            document.getElementById('tab-history').classList.toggle('border-green-500', t === 'history');
+            document.getElementById('tab-active').className = t === 'active' ? 'flex-1 py-4 font-black text-xs uppercase border-b-2 border-green-500 text-green-500' : 'flex-1 py-4 font-black text-xs uppercase text-gray-400';
+            document.getElementById('tab-history').className = t === 'history' ? 'flex-1 py-4 font-black text-xs uppercase border-b-2 border-green-500 text-green-500' : 'flex-1 py-4 font-black text-xs uppercase text-gray-400';
             loadOrders();
         }
-
-        function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
     </script>
 </body>
 </html>
