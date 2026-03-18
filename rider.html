@@ -3,62 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VE Rider Portal</title>
+    <title>Rider Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-slate-900 min-h-screen pb-10">
-    <header class="p-6 text-white text-center">
-        <h1 class="text-2xl font-black italic uppercase italic">Rider Dashboard</h1>
-    </header>
+    <div class="p-6">
+        <div class="bg-gradient-to-br from-green-600 to-green-800 p-8 rounded-[2.5rem] text-white shadow-2xl mb-8">
+            <p class="text-[10px] font-black opacity-60 uppercase tracking-widest mb-1">Rider Balance</p>
+            <h2 id="wallet-balance" class="text-4xl font-black italic mb-6">₹0</h2>
+            <button onclick="requestWithdraw()" class="w-full bg-white text-green-700 py-4 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Withdraw Earnings</button>
+        </div>
 
-    <main class="px-4 space-y-4" id="rider-feed"></main>
+        <div id="rider-feed" class="space-y-4"></div>
+    </div>
 
     <script>
         const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", authDomain: "village-quick-commerce-e27f6.firebaseapp.com", projectId: "village-quick-commerce-e27f6" };
         firebase.initializeApp(config);
         const db = firebase.firestore();
+        const RIDER_PHONE = "7075226826";
         let watchId = null;
 
+        // Wallet tracking
+        db.collection("orders").where("riderPhone", "==", RIDER_PHONE).where("status", "==", "Delivered").onSnapshot(snap => {
+            let balance = snap.size * 15;
+            document.getElementById('wallet-balance').innerText = `₹${balance}`;
+            window.currentBalance = balance;
+        });
+
+        function requestWithdraw() {
+            if(window.currentBalance < 100) return alert("Minimum ₹100 required");
+            db.collection("withdrawals").add({ riderPhone: RIDER_PHONE, amount: window.currentBalance, status: "Pending", timestamp: firebase.firestore.FieldValue.serverTimestamp() }).then(() => alert("Request Sent!"));
+        }
+
         db.collection("orders").orderBy("timestamp", "desc").onSnapshot(snap => {
-            const feed = document.getElementById('rider-feed');
-            feed.innerHTML = "";
+            const feed = document.getElementById('rider-feed'); feed.innerHTML = "";
             snap.forEach(doc => {
-                const data = doc.data();
-                const id = doc.id;
-                const items = Object.values(data.items).map(i => `${i.name} (x${i.qty})`).join(", ");
-                const isAccepted = data.status === "Accepted";
-                
+                const d = doc.data(); if(d.status === "Delivered") return;
                 feed.innerHTML += `
-                    <div class="bg-slate-800 rounded-3xl p-6 border border-slate-700 shadow-xl ${data.status === 'Delivered' ? 'hidden' : ''}">
-                        <div class="flex justify-between mb-4"><span class="text-slate-500 font-bold text-[10px]">#${data.orderId}</span><span class="text-green-400 font-black">₹${data.total}</span></div>
-                        <p class="text-white font-bold text-sm mb-4">${items}</p>
-                        <div class="bg-slate-900 p-4 rounded-xl mb-6"><p class="text-[10px] text-slate-500 font-bold mb-1">DESTINATION</p><p class="text-white text-xs italic">"${data.address}"</p></div>
+                    <div class="bg-slate-800 p-6 rounded-[2rem] border border-slate-700">
+                        <div class="flex justify-between mb-4"><span class="text-slate-500 font-bold text-[10px]">#${d.orderId}</span><span class="text-green-400 font-black">₹${d.total}</span></div>
+                        <p class="text-white font-bold text-sm mb-6">${Object.values(d.items).map(i => i.name).join(", ")}</p>
+                        <p class="text-slate-400 text-xs mb-4 italic">"${d.address}"</p>
                         <div class="flex gap-2">
-                            <button onclick="window.open('https://www.google.com/maps?q=${data.location.lat},${data.location.lng}')" class="flex-1 bg-blue-600 text-white font-black py-4 rounded-xl text-[10px] uppercase"><i class="fa-solid fa-map mr-1"></i> Map</button>
-                            ${!isAccepted ? `<button onclick="acceptOrder('${id}')" class="flex-1 bg-orange-500 text-white font-black py-4 rounded-xl text-[10px] uppercase">Accept</button>` : 
-                            `<button onclick="markDelivered('${id}')" class="flex-1 bg-green-600 text-white font-black py-4 rounded-xl text-[10px] uppercase">Delivered</button>`}
+                            <button onclick="window.open('http://maps.google.com/?q=${d.location.lat},${d.location.lng}')" class="flex-1 bg-slate-700 text-white py-4 rounded-xl font-black text-[10px] uppercase">Map</button>
+                            <button onclick="acceptOrder('${doc.id}')" class="flex-[2] bg-blue-600 text-white py-4 rounded-xl font-black text-[10px] uppercase">${d.status === 'Accepted' ? 'Deliver' : 'Accept'}</button>
                         </div>
                     </div>`;
             });
         });
 
         function acceptOrder(id) {
-            db.collection("orders").doc(id).update({ status: "Accepted", riderName: "Golla Ashok", riderPhone: "7075226826" });
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(pos => {
-                    db.collection("orders").doc(id).update({ riderLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
-                }, null, {enableHighAccuracy: true});
-            }
-        }
-
-        function markDelivered(id) {
-            if(confirm("Delivered?")) {
-                db.collection("orders").doc(id).update({ status: "Delivered" });
-                if(watchId) navigator.geolocation.clearWatch(watchId);
-            }
+            const orderRef = db.collection("orders").doc(id);
+            orderRef.get().then(doc => {
+                if(doc.data().status === "Accepted") {
+                    orderRef.update({status: "Delivered"});
+                    if(watchId) navigator.geolocation.clearWatch(watchId);
+                } else {
+                    orderRef.update({status: "Accepted", riderPhone: RIDER_PHONE, riderName: "Golla Ashok"});
+                    if (navigator.geolocation) {
+                        watchId = navigator.geolocation.watchPosition(pos => {
+                            orderRef.update({ riderLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
+                        }, null, {enableHighAccuracy: true});
+                    }
+                }
+            });
         }
     </script>
 </body>
