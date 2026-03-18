@@ -10,17 +10,18 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
         .blinkit-yellow { background-color: #F7CB45; }
-        .product-card { border: 1px solid #f2f2f2; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .active-cat { border-color: #15803d; background-color: #f0fdf4; color: #15803d; }
     </style>
 </head>
-<body class="bg-gray-50 text-slate-900 pb-24">
-    <header class="blinkit-yellow p-4 sticky top-0 z-50">
+<body class="bg-gray-50 text-slate-900 pb-32">
+    <header class="blinkit-yellow p-4 sticky top-0 z-50 shadow-md">
         <div class="flex items-center justify-between mb-3">
             <div class="flex items-center gap-2">
                 <i class="fa-solid fa-location-dot"></i>
-                <div>
+                <div onclick="getLocation()">
                     <h1 class="text-lg font-black italic leading-none">Village Express</h1>
-                    <p class="text-[10px] font-bold">Kalyandurg, Anantapur...</p>
+                    <p id="addr-display" class="text-[10px] font-bold">Tap to set location in Kalyandurg...</p>
                 </div>
             </div>
             <button onclick="showHistory()" class="bg-white/20 p-2 rounded-full w-10 h-10 flex items-center justify-center">
@@ -29,83 +30,95 @@
         </div>
         <div class="relative bg-white rounded-xl flex items-center px-4 py-3 shadow-sm">
             <i class="fa-solid fa-search text-gray-400 mr-3"></i>
-            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search "milk"' class="w-full outline-none text-sm font-medium">
-            <div id="search-results" class="absolute left-0 right-0 bg-white shadow-2xl rounded-b-2xl mt-1 hidden z-50 border max-h-60 overflow-y-auto top-full"></div>
+            <input type="text" id="search-input" oninput="handleSearch(this.value)" placeholder='Search "tomato" or "milk"' class="w-full outline-none text-sm font-medium">
         </div>
     </header>
 
-    <main class="p-4">
-        <div class="mb-6">
-            <h3 class="font-black text-sm mb-3">Reordering will be easy</h3>
-            <div id="recent-items" class="bg-white p-4 rounded-2xl flex items-center justify-between border border-dashed border-gray-300">
-                <p class="text-[11px] text-gray-400 font-medium italic">Items you order will show up here</p>
-                <i class="fa-solid fa-basket-shopping text-gray-100 text-3xl"></i>
-            </div>
-        </div>
+    <section class="bg-white border-b sticky top-[125px] z-40 overflow-x-auto hide-scroll flex gap-2 p-4">
+        <button onclick="filterItems('All')" id="cat-All" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase active-cat">All</button>
+        <button onclick="filterItems('Vegetables')" id="cat-Vegetables" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase">Vegetables</button>
+        <button onclick="filterItems('Fruits')" id="cat-Fruits" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase">Fruits</button>
+        <button onclick="filterItems('Dairy')" id="cat-Dairy" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase">Dairy & Milk</button>
+        <button onclick="filterItems('Meat')" id="cat-Meat" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase">Meat & Fish</button>
+        <button onclick="filterItems('Snacks')" id="cat-Snacks" class="cat-btn shrink-0 px-5 py-2 rounded-full border-2 border-gray-100 text-[11px] font-black uppercase">Snacks</button>
+    </section>
 
-        <h3 class="font-black text-sm mb-4">Bestsellers</h3>
-        <div id="items-grid" class="grid grid-cols-2 gap-3"></div>
+    <main class="p-4">
+        <h3 id="view-title" class="font-black text-sm mb-4">Fresh Items</h3>
+        <div id="items-grid" class="grid grid-cols-2 gap-3">
+            </div>
     </main>
 
-    <div id="cart-bar" class="fixed bottom-4 left-4 right-4 z-40 hidden">
-        <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center">
+    <div id="cart-bar" class="fixed bottom-6 left-4 right-4 z-50 hidden">
+        <button onclick="showCheckout()" class="w-full bg-green-700 text-white flex justify-between p-4 rounded-2xl font-black shadow-2xl items-center animate-bounce">
             <div class="text-left">
                 <p id="cart-count" class="text-[10px] opacity-80 uppercase">0 ITEMS</p>
                 <p id="cart-total-bar" class="text-sm">₹0</p>
             </div>
-            <span class="text-xs">VIEW CART <i class="fa-solid fa-chevron-right ml-1"></i></span>
+            <span class="text-xs">PROCEED TO CART <i class="fa-solid fa-chevron-right ml-1"></i></span>
         </button>
-    </div>
-
-    <div id="history-view" class="fixed inset-0 bg-white z-[80] hidden overflow-y-auto">
-        <div class="sticky top-0 bg-white p-4 border-b flex items-center gap-4">
-            <button onclick="hideHistory()"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 class="font-black">Your orders</h2>
-        </div>
-        <div id="history-list" class="p-4 space-y-4"></div>
-    </div>
-
-    <div id="checkout-view" class="fixed inset-0 bg-white z-[90] hidden overflow-y-auto p-6">
-        <button onclick="hideCheckout()" class="mb-6 font-bold text-slate-400"><i class="fa-solid fa-arrow-left"></i> BACK</button>
-        <div class="bg-gray-50 p-4 rounded-2xl mb-6 border border-gray-100">
-            <div id="address-status" class="text-[10px] font-black text-red-500 mb-2 uppercase">Location Required*</div>
-            <textarea id="manual-address" placeholder="Flat / House No / Landmark..." class="w-full bg-transparent text-sm font-bold outline-none mb-3" rows="2"></textarea>
-            <button onclick="getLocation()" id="loc-btn" class="w-full bg-blue-600 text-white py-3 rounded-xl text-[10px] font-black uppercase">Capture GPS</button>
-        </div>
-        <div id="checkout-items" class="space-y-4 mb-8"></div>
-        <div id="bill-details" class="bg-gray-50 p-6 rounded-3xl mb-8 text-xs font-bold">
-            <div class="flex justify-between mb-2"><span>Item Total</span><span id="bill-sub">₹0</span></div>
-            <div class="flex justify-between mb-2"><span>Handling Charge</span><span>₹5</span></div>
-            <div class="flex justify-between mb-2 text-green-600"><span>Delivery Fee</span><span>FREE</span></div>
-            <div class="flex justify-between text-base font-black pt-3 border-t border-dashed mt-2"><span>Grand Total</span><span id="bill-grand">₹0</span></div>
-        </div>
-        <button onclick="placeOrder()" class="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest">Place Order</button>
     </div>
 
     <script>
         const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };
         firebase.initializeApp(config);
         const db = firebase.firestore();
-        let cart = {}; let userLoc = null;
+        
+        let allProducts = [];
+        let cart = {};
 
         window.onload = () => {
-            const grid = document.getElementById('items-grid');
+            // Listen to all products once
             db.collection("products").onSnapshot(snap => {
-                grid.innerHTML = "";
-                snap.forEach(doc => {
-                    const p = doc.data();
-                    grid.innerHTML += `
-                        <div class="bg-white border product-card rounded-2xl p-3 shadow-sm">
-                            <div class="aspect-square rounded-xl mb-3 overflow-hidden bg-gray-50">
-                                <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-full h-full object-contain">
-                            </div>
-                            <p class="font-black text-[11px] h-8 overflow-hidden mb-1">${p.name}</p>
-                            <p class="text-[10px] text-gray-400 font-bold mb-3">₹${p.price}</p>
-                            <button onclick="addToCart('${doc.id}','${p.name}',${p.price})" class="w-full border-2 border-green-600 text-green-700 py-1.5 rounded-xl text-[10px] font-black uppercase">Add</button>
-                        </div>`;
-                });
+                allProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderItems(allProducts); 
             });
         };
+
+        function renderItems(list) {
+            const grid = document.getElementById('items-grid');
+            grid.innerHTML = "";
+            if(list.length === 0) {
+                grid.innerHTML = `<p class="col-span-2 text-center py-10 text-gray-400 text-xs">No items found in this category.</p>`;
+                return;
+            }
+            list.forEach(p => {
+                grid.innerHTML += `
+                    <div class="bg-white border rounded-2xl p-3 shadow-sm flex flex-col justify-between">
+                        <div class="aspect-square rounded-xl mb-3 overflow-hidden bg-gray-50 flex items-center justify-center">
+                            <img src="${p.image || 'https://via.placeholder.com/150'}" class="w-full h-full object-contain p-2">
+                        </div>
+                        <div>
+                            <p class="font-black text-[11px] h-8 overflow-hidden mb-1">${p.name}</p>
+                            <div class="flex justify-between items-center mt-2">
+                                <p class="text-[12px] font-black">₹${p.price}</p>
+                                <button onclick="addToCart('${p.id}','${p.name}',${p.price})" class="border-2 border-green-600 text-green-700 px-4 py-1 rounded-lg text-[10px] font-black uppercase active:bg-green-600 active:text-white">Add</button>
+                            </div>
+                        </div>
+                    </div>`;
+            });
+        }
+
+        function filterItems(cat) {
+            // Update UI buttons
+            document.querySelectorAll('.cat-btn').forEach(btn => btn.classList.remove('active-cat'));
+            document.getElementById('cat-' + cat).classList.add('active-cat');
+            document.getElementById('view-title').innerText = cat === 'All' ? 'Fresh Items' : cat;
+
+            // Filter logic
+            if(cat === 'All') {
+                renderItems(allProducts);
+            } else {
+                const filtered = allProducts.filter(p => p.category === cat);
+                renderItems(filtered);
+            }
+        }
+
+        function handleSearch(val) {
+            const searchVal = val.toLowerCase();
+            const results = allProducts.filter(p => p.name.toLowerCase().includes(searchVal));
+            renderItems(results);
+        }
 
         function addToCart(id, name, price) {
             cart[id] = cart[id] ? { ...cart[id], qty: cart[id].qty + 1 } : { name, price, qty: 1 };
@@ -116,41 +129,11 @@
             let sub = 0; let count = 0;
             Object.values(cart).forEach(i => { sub += i.price * i.qty; count += i.qty; });
             document.getElementById('cart-bar').classList.toggle('hidden', count === 0);
-            document.getElementById('cart-total-bar').innerText = `₹${sub + 5}`; // Subtotal + Handling
+            document.getElementById('cart-total-bar').innerText = `₹${sub + 5}`; // Adding Handling fee
             document.getElementById('cart-count').innerText = `${count} ITEMS`;
-            window.subtotal = sub;
-            window.finalTotal = sub + 5 + 15; // +5 Handling, +15 Delivery (shown in breakdown)
         }
-
-        function getLocation() {
-            navigator.geolocation.getCurrentPosition(pos => {
-                userLoc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                document.getElementById('address-status').innerText = "GPS Fixed ✅";
-                document.getElementById('address-status').classList.replace('text-red-500', 'text-green-600');
-            }, null, {enableHighAccuracy: true});
-        }
-
-        function placeOrder() {
-            if(!userLoc) return alert("Please capture GPS location");
-            const orderId = "ORD" + Math.floor(Math.random() * 10000000);
-            db.collection("orders").add({
-                orderId, items: cart, total: window.finalTotal, 
-                address: document.getElementById('manual-address').value,
-                location: userLoc, status: "Pending", payment: "Paid via UPI",
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            }).then(() => {
-                window.location.href = `upi://pay?pa=g.ashok14@ibl&pn=VillageExpress&am=${window.finalTotal}&cu=INR&tn=${orderId}`;
-            });
-        }
-
-        function showHistory() { document.getElementById('history-view').classList.remove('hidden'); }
-        function hideHistory() { document.getElementById('history-view').classList.add('hidden'); }
-        function showCheckout() {
-            document.getElementById('checkout-view').classList.remove('hidden');
-            document.getElementById('bill-sub').innerText = `₹${window.subtotal}`;
-            document.getElementById('bill-grand').innerText = `₹${window.finalTotal}`;
-        }
-        function hideCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
+        
+        // Include your existing getLocation, showCheckout, and placeOrder functions here...
     </script>
 </body>
 </html>
