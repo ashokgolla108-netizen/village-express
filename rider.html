@@ -3,67 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Village Express - Rider Portal</title>
+    <title>Village Express - Rider</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        .dark-navy { background-color: #1a1f2c; }
-        .tab-active { border-bottom: 3px solid #10b981; color: #10b981; }
-        .auth-screen { display: none; position: fixed; inset: 0; background: white; z-index: 2000; padding: 24px; overflow-y: auto; }
-        .auth-screen.active { display: block !important; }
-        input { border: 1px solid #e2e8f0; border-radius: 12px; padding: 12px; width: 100%; background: #f8fafc; outline: none; margin-bottom: 10px; font-weight: 600; }
-        .btn-primary { background: #1a1f2c; color: white; font-weight: 900; text-transform: uppercase; padding: 16px; border-radius: 16px; width: 100%; }
-    </style>
 </head>
 <body class="bg-gray-50 pb-20">
 
-    <div id="auth-overlay" class="auth-screen">
+    <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-6 hidden">
         <div id="login-view" class="space-y-6 pt-10 text-center">
-            <h1 class="text-4xl font-black italic text-slate-800">Rider Login</h1>
-            <input type="tel" id="login-phone" placeholder="Mobile Number">
-            <input type="password" id="login-pass" placeholder="Password">
-            <button onclick="handleLogin()" class="btn-primary">Enter Portal</button>
-            <button onclick="showAuth('register')" class="text-[10px] font-black text-blue-600 mt-4 uppercase">Register New Rider</button>
+            <h1 class="text-4xl font-black italic">Rider Portal</h1>
+            <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-4 border rounded-xl">
+            <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 border rounded-xl">
+            <button onclick="handleLogin()" class="w-full bg-slate-800 text-white p-4 rounded-xl font-black">ENTER PORTAL</button>
+            <button onclick="showAuth('register')" class="text-xs font-bold text-blue-600 mt-4 uppercase">Register as Rider</button>
         </div>
-
         <div id="register-view" class="hidden space-y-4">
-            <h2 class="text-2xl font-black italic">Rider Registration</h2>
-            <input type="text" id="reg-name" placeholder="Full Name">
-            <input type="tel" id="reg-phone" placeholder="Mobile Number">
-            <input type="password" id="reg-pass" placeholder="Password">
-            <button onclick="handleRegister()" class="btn-primary">Register</button>
-            <button onclick="showAuth('login')" class="w-full text-xs font-black text-gray-400 mt-4 uppercase">Back</button>
+            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 border rounded-xl">
+            <input type="tel" id="reg-phone" placeholder="Mobile" class="w-full p-4 border rounded-xl">
+            <input type="password" id="reg-pass" placeholder="Password" class="w-full p-4 border rounded-xl">
+            <button onclick="handleRegister()" class="w-full bg-slate-800 text-white p-4 rounded-xl font-black">REGISTER</button>
+            <button onclick="showAuth('login')" class="w-full text-xs font-bold text-gray-400 mt-4 uppercase">Back</button>
         </div>
     </div>
 
     <div id="main-app" class="hidden">
-        <header class="dark-navy p-6 text-white rounded-b-[40px] shadow-lg">
+        <header class="bg-[#1a1f2c] p-6 text-white rounded-b-[40px] shadow-lg">
             <div class="flex justify-between items-center mb-6">
-                <div>
-                    <h1 class="text-2xl font-black italic">Rider Portal</h1>
-                    <p id="rider-display-name" class="text-xs text-gray-400 uppercase font-bold tracking-widest">---</p>
-                </div>
+                <div><h1 class="text-2xl font-black italic">Rider Dashboard</h1><p id="rider-name" class="text-xs text-gray-400 uppercase font-bold tracking-widest">---</p></div>
                 <button onclick="handleLogout()" class="bg-white/10 p-3 rounded-2xl"><i class="fa-solid fa-power-off"></i></button>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase">Earnings</p>
-                    <p id="total-earnings" class="text-2xl font-black text-green-400">₹0</p>
-                </div>
-                <div class="bg-white/5 p-4 rounded-3xl border border-white/10">
-                    <p class="text-[10px] font-bold text-gray-400 uppercase">Status</p>
-                    <p id="rider-status-text" class="text-sm font-black text-orange-400 uppercase">Online</p>
-                </div>
+            <div id="status-card" class="bg-white/5 p-4 rounded-3xl border border-white/10 text-center">
+                <p id="rider-status-text" class="text-green-400 font-black uppercase tracking-tighter">Ready for Orders</p>
             </div>
         </header>
 
         <div class="flex px-6 mt-6 border-b bg-white sticky top-0 z-10">
-            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs tab-active uppercase">Orders</button>
-            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs text-gray-400 uppercase">History</button>
+            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 font-black text-xs uppercase border-b-2 border-green-500 text-green-500">Active</button>
+            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 font-black text-xs uppercase text-gray-400">History</button>
         </div>
-        <main id="rider-list" class="p-4 space-y-4"></main>
+
+        <main id="order-list" class="p-4 space-y-4"></main>
     </div>
 
     <script>
@@ -73,91 +54,81 @@
 
         let currentRider = JSON.parse(localStorage.getItem('rider_session')) || null;
         let currentTab = 'active';
-        let watchId = null;
 
-        window.onload = () => { 
-            if(!currentRider) showAuth('login'); 
-            else {
-                document.getElementById('rider-display-name').innerText = currentRider.name;
-                document.getElementById('main-app').classList.remove('hidden');
-                startLocationTracking();
-                loadOrders(); 
-            }
-        };
+        window.onload = () => { if(!currentRider) showAuth('login'); else { document.getElementById('rider-name').innerText = currentRider.name; document.getElementById('main-app').classList.remove('hidden'); startTracking(); loadOrders(); } };
 
-        // NAVIGATION FIX: Using the Google Maps Search API
-        function openNavigation(addressString) {
-            const coords = addressString.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
-            let url = "";
-            if (coords) {
-                url = `https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[2]}`;
-            } else {
-                url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressString)}`;
-            }
-            window.open(url, '_blank');
+        function showAuth(v) { 
+            document.getElementById('auth-overlay').classList.remove('hidden');
+            document.getElementById('login-view').classList.toggle('hidden', v !== 'login');
+            document.getElementById('register-view').classList.toggle('hidden', v !== 'register');
         }
 
-        // LOCATION TRACKING
-        function startLocationTracking() {
-            if (navigator.geolocation) {
-                watchId = navigator.geolocation.watchPosition(pos => {
-                    db.collection("riders").doc(currentRider.id).update({
-                        lat: pos.coords.latitude,
-                        lng: pos.coords.longitude,
-                        lastSeen: Date.now()
-                    });
-                }, err => console.error(err), { enableHighAccuracy: true });
-            }
+        async function handleLogin() {
+            const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
+            const s = await db.collection("riders").where("phone","==",p).where("pass","==",pw).get();
+            if(s.empty) return alert("Rider login failed");
+            currentRider = { id: s.docs[0].id, ...s.docs[0].data() };
+            localStorage.setItem('rider_session', JSON.stringify(currentRider));
+            location.reload();
         }
 
-        // ORDER LOGIC
+        async function handleRegister() {
+            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, pw = document.getElementById('reg-pass').value;
+            await db.collection("riders").add({ name:n, phone:p, pass:pw, lat:0, lng:0 });
+            alert("Rider Added!"); showAuth('login');
+        }
+
+        function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
+
+        // NAVIGATION LOGIC
+        function openNavigation(addr) {
+            const coords = addr.match(/(-?\d+\.\d+),\s*(-?\d+\.\d+)/);
+            if (coords) window.open(`https://www.google.com/maps/search/?api=1&query=${coords[1]},${coords[2]}`, '_blank');
+            else window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addr)}`, '_blank');
+        }
+
+        // START TRACKING
+        function startTracking() {
+            navigator.geolocation.watchPosition(pos => {
+                db.collection("riders").doc(currentRider.id).update({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+            }, err => console.log(err), { enableHighAccuracy: true });
+        }
+
         function loadOrders() {
             db.collection("orders").onSnapshot(snap => {
-                const list = document.getElementById('rider-list');
+                const list = document.getElementById('order-list');
                 list.innerHTML = "";
-                let hasActiveJob = false;
-
-                // Check if THIS rider already has an active delivery
-                const myActiveOrder = snap.docs.find(doc => doc.data().riderId === currentRider.id && doc.data().status === "ACCEPTED");
-                if(myActiveOrder) hasActiveJob = true;
-
-                document.getElementById('rider-status-text').innerText = hasActiveJob ? "Busy" : "Online";
+                
+                // Check if I have an active accepted order
+                const activeJob = snap.docs.find(doc => doc.data().riderId === currentRider.id && doc.data().status === "ACCEPTED");
+                document.getElementById('rider-status-text').innerText = activeJob ? "Busy Delivering" : "Ready for Orders";
 
                 snap.docs.forEach(doc => {
                     const d = doc.data();
                     
-                    // Logic: Hide pending orders if I'm already busy delivering
-                    if(hasActiveJob && d.status === "PENDING") return;
+                    // Logic: Hide pending if I'm busy. Hide other riders' jobs.
+                    if (activeJob && d.status === "PENDING") return;
+                    if (d.status === "ACCEPTED" && d.riderId !== currentRider.id) return;
 
-                    // Logic: If order is ACCEPTED, only show it to the rider who accepted it
-                    if(d.status === "ACCEPTED" && d.riderId !== currentRider.id) return;
-
-                    // Tab Filtering
                     const isHistory = (d.status === "DELIVERED" || d.status === "CANCELLED");
-                    if(currentTab === 'active' && isHistory) return;
-                    if(currentTab === 'history' && !isHistory) return;
+                    if (currentTab === 'active' && isHistory) return;
+                    if (currentTab === 'history' && !isHistory) return;
 
                     list.innerHTML += `
-                        <div class="bg-white p-6 rounded-[32px] shadow-sm border border-gray-100">
+                        <div class="bg-white p-6 rounded-[32px] border shadow-sm">
                             <div class="flex justify-between items-start mb-4">
                                 <span class="text-[9px] font-bold text-gray-300">#${d.orderId}</span>
                                 <span class="bg-orange-50 text-orange-500 px-3 py-1 rounded-full text-[10px] font-black uppercase">${d.status}</span>
                             </div>
-                            <h3 class="font-black text-lg mb-4">${Object.values(d.items).map(i => i.name).join(', ')}</h3>
-                            <div class="bg-slate-50 p-4 rounded-2xl mb-6">
-                                <div class="flex justify-between items-center mb-2">
-                                    <p class="font-bold text-sm">${d.customer.name}</p>
-                                    <a href="tel:${d.customer.phone}" class="text-blue-600"><i class="fa-solid fa-phone"></i></a>
-                                </div>
+                            <h3 class="font-black text-lg mb-4 italic">${Object.values(d.items).map(i => i.name).join(', ')}</h3>
+                            <div class="bg-slate-50 p-4 rounded-2xl mb-4">
+                                <p class="font-black text-sm">${d.customer.name}</p>
                                 <p class="text-[11px] text-gray-500 font-bold">${d.address}</p>
                             </div>
-                            <div class="flex gap-3">
-                                <button onclick="openNavigation('${d.address}')" class="flex-1 bg-slate-800 text-white py-4 rounded-2xl font-black text-xs uppercase"><i class="fa-solid fa-location-arrow"></i> Navigate</button>
-                                ${d.status === 'PENDING' ? `
-                                    <button onclick="acceptOrder('${doc.id}')" class="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-xs uppercase">Accept</button>
-                                ` : d.status === 'ACCEPTED' ? `
-                                    <button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white py-4 rounded-2xl font-black text-xs uppercase">Deliver</button>
-                                ` : ''}
+                            <div class="flex gap-2">
+                                <button onclick="openNavigation('${d.address}')" class="flex-1 bg-slate-800 text-white p-4 rounded-2xl font-black text-xs uppercase">Navigate</button>
+                                ${d.status === 'PENDING' ? `<button onclick="acceptOrder('${doc.id}')" class="flex-1 bg-blue-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Accept</button>` : ''}
+                                ${d.status === 'ACCEPTED' ? `<button onclick="updateStatus('${doc.id}', 'DELIVERED')" class="flex-1 bg-green-600 text-white p-4 rounded-2xl font-black text-xs uppercase">Deliver</button>` : ''}
                             </div>
                         </div>`;
                 });
@@ -165,7 +136,6 @@
         }
 
         async function acceptOrder(id) {
-            // Assign order to THIS rider only and update status
             await db.collection("orders").doc(id).update({
                 status: "ACCEPTED",
                 riderId: currentRider.id,
@@ -175,30 +145,6 @@
         }
 
         async function updateStatus(id, s) { await db.collection("orders").doc(id).update({ status: s }); }
-
-        // AUTH LOGIC
-        function showAuth(v) { 
-            document.getElementById('auth-overlay').classList.add('active');
-            document.getElementById('login-view').classList.toggle('hidden', v !== 'login');
-            document.getElementById('register-view').classList.toggle('hidden', v !== 'register');
-        }
-
-        async function handleLogin() {
-            const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
-            const s = await db.collection("riders").where("phone","==",p).where("pass","==",pw).get();
-            if(s.empty) return alert("Invalid Login");
-            currentRider = { id: s.docs[0].id, ...s.docs[0].data() };
-            localStorage.setItem('rider_session', JSON.stringify(currentRider));
-            location.reload();
-        }
-
-        async function handleRegister() {
-            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, pw = document.getElementById('reg-pass').value;
-            const docRef = await db.collection("riders").add({ name:n, phone:p, pass:pw, lat:0, lng:0 });
-            alert("Rider registered!"); showAuth('login');
-        }
-
-        function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
         function switchTab(t) { currentTab = t; loadOrders(); }
     </script>
 </body>
