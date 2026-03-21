@@ -17,9 +17,11 @@
 
     <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-8 flex flex-col justify-center items-center text-slate-900">
         <div class="w-full max-w-sm space-y-6 text-center">
-            <h1 class="text-4xl font-black italic text-slate-900">RIDER<span class="text-orange-500">PORTAL</span></h1>
-            <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 border-none rounded-2xl outline-none">
-            <input type="password" id="login-pass" placeholder="Access Password" class="w-full p-5 bg-slate-100 border-none rounded-2xl outline-none">
+            <h1 class="text-4xl font-black italic text-slate-900 tracking-tighter">RIDER<span class="text-orange-500">PORTAL</span></h1>
+            <div class="space-y-4">
+                <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 border-none rounded-2xl outline-none">
+                <input type="password" id="login-pass" placeholder="Access Password" class="w-full p-5 bg-slate-100 border-none rounded-2xl outline-none">
+            </div>
             <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-sm tracking-widest shadow-2xl">START SHIFT</button>
         </div>
     </div>
@@ -56,7 +58,6 @@
                 document.getElementById('auth-overlay').style.display = 'flex'; 
             } else { 
                 initRider(); 
-                if (Notification.permission !== "granted") Notification.requestPermission();
             } 
         };
 
@@ -83,16 +84,18 @@
                 
                 const allOrders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 
-                // Check if rider already has an active accepted job
-                const activeJob = allOrders.find(o => o.status === 'ACCEPTED' && o.riderId === currentRider.id);
+                // Find if this specific rider has an order they currently "own" (ACCEPTED)
+                const myActiveJob = allOrders.find(o => o.status === 'ACCEPTED' && o.riderId === currentRider.id);
 
                 if (currentTab === 'active') {
-                    if (activeJob) {
-                        renderOrderCard(activeJob, list);
-                        list.innerHTML += `<div class="p-10 text-center opacity-50 text-[10px] font-bold uppercase tracking-widest">Complete current delivery to see new orders</div>`;
+                    if (myActiveJob) {
+                        // Rider is busy, show ONLY their current job
+                        renderOrderCard(myActiveJob, list);
+                        list.innerHTML += `<div class="p-10 text-center opacity-50 text-[10px] font-bold uppercase tracking-widest">Finish delivery to see more jobs</div>`;
                         document.getElementById('duty-status').innerText = "Busy Delivering";
                         document.getElementById('duty-status').className = "text-[10px] font-bold text-orange-400 uppercase tracking-widest mt-1";
                     } else {
+                        // Rider is free, show all PENDING jobs
                         const available = allOrders.filter(o => o.status === 'PENDING');
                         if(available.length === 0) {
                             list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic">NO NEW ORDERS</div>`;
@@ -103,7 +106,9 @@
                         document.getElementById('duty-status').className = "text-[10px] font-bold text-green-400 uppercase tracking-widest mt-1";
                     }
                 } else {
+                    // History tab: show jobs this rider delivered
                     const history = allOrders.filter(o => o.status === 'DELIVERED' && o.riderId === currentRider.id);
+                    if(history.length === 0) list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic text-xs uppercase">No history found</div>`;
                     history.forEach(o => renderOrderCard(o, list));
                 }
             });
@@ -119,35 +124,38 @@
                     </div>
                     <h4 class="text-lg font-black italic">${d.customer.name}</h4>
                     <p class="text-[11px] text-slate-400 mb-4">${d.address}</p>
-                    <div class="flex justify-between items-center mb-4">
+                    <p class="text-[10px] text-slate-500 font-bold mb-4 uppercase tracking-tighter">${items}</p>
+                    
+                    <div class="flex justify-between items-center mt-2 mb-4">
                         <p class="text-xl font-black text-green-400">₹${d.total}</p>
                         <div class="flex gap-2">
                             <a href="tel:${d.customer.phone}" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/10"><i class="fa-solid fa-phone"></i></a>
+                            <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d.address)}')" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10"><i class="fa-solid fa-map-location-dot"></i></button>
                         </div>
                     </div>
-                    ${d.status === 'PENDING' ? `<button onclick="updateJob('${d.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-4 rounded-2xl font-black text-[11px] uppercase">Accept Job</button>` : ''}
-                    ${d.status === 'ACCEPTED' ? `<button onclick="updateJob('${d.id}', 'DELIVERED')" class="w-full bg-green-600 py-4 rounded-2xl font-black text-[11px] uppercase">Confirm Delivery</button>` : ''}
+
+                    ${d.status === 'PENDING' ? `<button onclick="updateJob('${d.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Accept Job</button>` : ''}
+                    ${d.status === 'ACCEPTED' ? `<button onclick="updateJob('${d.id}', 'DELIVERED')" class="w-full bg-green-600 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Confirm Delivery</button>` : ''}
                 </div>`;
         }
 
-        async function updateJob(id, newStatus) {
-            const updateData = { status: newStatus };
-            if (newStatus === 'ACCEPTED') {
-                updateData.riderId = currentRider.id;
-                updateData.riderPhone = currentRider.phone;
-                startSharingLocation(id);
-            } else if (newStatus === 'DELIVERED') {
-                if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher);
-                sendCompletionNotification();
-            }
-            await db.collection("orders").doc(id).update(updateData);
-        }
+        async function updateJob(docId, newStatus) {
+            try {
+                const updateData = { status: newStatus };
+                
+                if (newStatus === 'ACCEPTED') {
+                    updateData.riderId = currentRider.id;
+                    updateData.riderPhone = currentRider.phone;
+                    startSharingLocation(docId);
+                } else if (newStatus === 'DELIVERED') {
+                    if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher);
+                    alert("Order Delivered! Returning to Duty.");
+                }
 
-        function sendCompletionNotification() {
-            if (Notification.permission === "granted") {
-                new Notification("Delivery Complete!", { body: "You are now ready for new orders.", icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png" });
-            } else {
-                alert("Delivery Confirmed! You are now back on duty.");
+                await db.collection("orders").doc(docId).update(updateData);
+            } catch (error) {
+                console.error("Error updating order:", error);
+                alert("Action failed. Please check internet connection.");
             }
         }
 
@@ -157,7 +165,7 @@
                     db.collection("orders").doc(orderId).update({
                         riderLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude }
                     });
-                }, null, { enableHighAccuracy: true });
+                }, (err) => console.log("GPS Error", err), { enableHighAccuracy: true });
             }
         }
 
