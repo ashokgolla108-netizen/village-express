@@ -175,13 +175,14 @@
                 const list = document.getElementById('history-list'); list.innerHTML = "";
                 snap.docs.sort((a,b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0)).forEach(doc => {
                     const d = doc.data(); 
-                    const isAccepted = d.status === "ACCEPTED" && d.riderLocation;
-                    let mapUrl = isAccepted ? `https://www.google.com/maps?q=${d.riderLocation.lat},${d.riderLocation.lng}` : "#";
+                    const isAccepted = d.status === "ACCEPTED";
+                    const hasCoords = isAccepted && d.riderLocation;
+                    let mapUrl = hasCoords ? `https://www.google.com/maps/search/?api=1&query=${d.riderLocation.lat},${d.riderLocation.lng}` : "#";
 
                     list.innerHTML += `<div class="bg-white p-5 rounded-[2.5rem] border mb-4 shadow-sm">
                         <div class="flex justify-between mb-2"><span class="text-[9px] font-black text-slate-300">#${d.orderId}</span><span class="px-3 py-1 ${d.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'} rounded-full text-[8px] font-black uppercase">${d.status}</span></div>
                         <p class="text-xs font-bold text-slate-600">${Object.values(d.items).map(i => i.name).join(', ')}</p>
-                        ${isAccepted ? `<div class="mt-3 p-3 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center"><span class="text-[9px] font-black text-blue-600 uppercase tracking-tighter">Rider is on the way</span><a href="${mapUrl}" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black">TRACK LIVE</a></div>` : ''}
+                        ${isAccepted ? `<div class="mt-3 p-3 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center"><div class="flex items-center gap-2"><div class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div><span class="text-[9px] font-black text-blue-600 uppercase tracking-tighter">${hasCoords ? 'Rider is on the way' : 'Connecting to Rider...'}</span></div>${hasCoords ? `<a href="${mapUrl}" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black shadow-lg shadow-blue-200">TRACK LIVE</a>` : `<span class="text-[8px] font-bold text-blue-300 px-2 uppercase">GPS Signaling...</span>`}</div>` : ''}
                         <div class="flex justify-between items-end mt-4"><p class="text-lg font-black">₹${d.total}</p><div class="flex gap-2">${d.status === "PENDING" ? `<button onclick="cancelOrder('${doc.id}')" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Cancel</button>` : ''}${d.riderPhone ? `<a href="tel:${d.riderPhone}" class="bg-slate-900 text-white w-10 h-10 rounded-xl flex items-center justify-center"><i class="fa-solid fa-phone text-xs"></i></a>` : ''}</div></div></div>`;
                 });
             });
