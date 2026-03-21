@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Village Express - Rider</title>
-    <script src="https://cdn.tailwindcss.com/"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -17,11 +17,9 @@
 
     <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-8 flex flex-col justify-center items-center text-slate-900">
         <div class="w-full max-w-sm space-y-6 text-center">
-            <h1 class="text-4xl font-black italic tracking-tighter text-slate-900">RIDER<span class="text-orange-500">PORTAL</span></h1>
-            <div class="space-y-4">
-                <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 border-none rounded-2xl outline-none">
-                <input type="password" id="login-pass" placeholder="Access Password" class="w-full p-5 bg-slate-100 border-none rounded-2xl outline-none">
-            </div>
+            <h1 class="text-4xl font-black italic text-slate-900">RIDER<span class="text-orange-500">PORTAL</span></h1>
+            <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 border-none rounded-2xl outline-none">
+            <input type="password" id="login-pass" placeholder="Access Password" class="w-full p-5 bg-slate-100 border-none rounded-2xl outline-none">
             <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-sm tracking-widest shadow-2xl">START SHIFT</button>
         </div>
     </div>
@@ -30,23 +28,16 @@
         <header class="p-6 bg-slate-800/40 border-b border-white/5 sticky top-0 z-50">
             <div class="flex justify-between items-center">
                 <div>
-                    <h2 id="rider-name" class="text-xl font-black italic leading-tight">---</h2>
-                    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Active on Duty</p>
+                    <h2 id="rider-name" class="text-xl font-black italic">---</h2>
+                    <p id="duty-status" class="text-[10px] font-bold text-green-400 uppercase tracking-widest mt-1">On Duty</p>
                 </div>
                 <button onclick="handleLogout()" class="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center"><i class="fa-solid fa-power-off"></i></button>
             </div>
         </header>
 
         <div class="flex p-4 gap-3">
-            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white">Available Jobs</button>
-            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400">My Deliveries</button>
-        </div>
-
-        <div class="px-4 mb-4">
-            <div class="bg-gradient-to-br from-blue-600 to-blue-700 p-6 rounded-[2.5rem] shadow-xl flex justify-between items-center">
-                <div><p class="text-[10px] font-black text-blue-100 uppercase opacity-80">Earnings</p><h3 id="rider-earnings" class="text-3xl font-black italic">₹0</h3></div>
-                <button onclick="requestWithdrawal()" class="bg-white/20 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Withdraw</button>
-            </div>
+            <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white">Jobs</button>
+            <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400">History</button>
         </div>
 
         <main id="order-list" class="p-4 space-y-4"></main>
@@ -60,7 +51,14 @@
         let currentRider = JSON.parse(localStorage.getItem('rider_session')) || null;
         let currentTab = 'active', locationWatcher = null;
 
-        window.onload = () => { if(!currentRider) { document.getElementById('auth-overlay').style.display = 'flex'; } else { initRider(); } };
+        window.onload = () => { 
+            if(!currentRider) { 
+                document.getElementById('auth-overlay').style.display = 'flex'; 
+            } else { 
+                initRider(); 
+                if (Notification.permission !== "granted") Notification.requestPermission();
+            } 
+        };
 
         async function handleLogin() {
             const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
@@ -82,46 +80,54 @@
             db.collection("orders").onSnapshot(snap => {
                 const list = document.getElementById('order-list');
                 list.innerHTML = "";
-                let dailyEarnings = 0;
+                
+                const allOrders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Check if rider already has an active accepted job
+                const activeJob = allOrders.find(o => o.status === 'ACCEPTED' && o.riderId === currentRider.id);
 
-                const sorted = snap.docs.sort((a,b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0));
-
-                sorted.forEach(doc => {
-                    const d = doc.data();
-                    if (d.status === "DELIVERED" && d.riderId === currentRider.id) dailyEarnings += 15;
-                    
-                    if (currentTab === 'active') {
-                        if (d.status === "DELIVERED" || d.status === "CANCELLED") return;
-                        if (d.status === "ACCEPTED" && d.riderId !== currentRider.id) return;
+                if (currentTab === 'active') {
+                    if (activeJob) {
+                        renderOrderCard(activeJob, list);
+                        list.innerHTML += `<div class="p-10 text-center opacity-50 text-[10px] font-bold uppercase tracking-widest">Complete current delivery to see new orders</div>`;
+                        document.getElementById('duty-status').innerText = "Busy Delivering";
+                        document.getElementById('duty-status').className = "text-[10px] font-bold text-orange-400 uppercase tracking-widest mt-1";
                     } else {
-                        if (d.status !== "DELIVERED" || d.riderId !== currentRider.id) return;
+                        const available = allOrders.filter(o => o.status === 'PENDING');
+                        if(available.length === 0) {
+                            list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic">NO NEW ORDERS</div>`;
+                        } else {
+                            available.forEach(o => renderOrderCard(o, list));
+                        }
+                        document.getElementById('duty-status').innerText = "Waiting for Orders";
+                        document.getElementById('duty-status').className = "text-[10px] font-bold text-green-400 uppercase tracking-widest mt-1";
                     }
-
-                    const items = Object.values(d.items).map(i => `${i.name} (x${i.qty})`).join(', ');
-
-                    list.innerHTML += `
-                        <div class="bg-slate-800/50 border border-white/5 p-6 rounded-[2.5rem]">
-                            <div class="flex justify-between items-center mb-4">
-                                <span class="text-[9px] font-black text-slate-500">#${d.orderId}</span>
-                                <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${d.status === 'PENDING' ? 'bg-orange-500' : 'bg-blue-500'} text-white">${d.status}</span>
-                            </div>
-                            <h4 class="text-lg font-black italic">${d.customer.name}</h4>
-                            <p class="text-[11px] text-slate-400 mb-2">${d.address}</p>
-                            <div class="flex justify-between items-center mt-4">
-                                <p class="text-xl font-black text-green-400">₹${d.total}</p>
-                                <div class="flex gap-2">
-                                    <a href="tel:${d.customer.phone}" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/10"><i class="fa-solid fa-phone"></i></a>
-                                    <button onclick="navigate('${d.address}')" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10"><i class="fa-solid fa-location-arrow"></i></button>
-                                </div>
-                            </div>
-                            <div class="mt-4">
-                                ${d.status === 'PENDING' ? `<button onclick="updateJob('${doc.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-4 rounded-2xl font-black text-[11px] uppercase">Accept Job</button>` : ''}
-                                ${d.status === 'ACCEPTED' ? `<button onclick="updateJob('${doc.id}', 'DELIVERED')" class="w-full bg-green-600 py-4 rounded-2xl font-black text-[11px] uppercase">Confirm Delivery</button>` : ''}
-                            </div>
-                        </div>`;
-                });
-                document.getElementById('rider-earnings').innerText = `₹${dailyEarnings}`;
+                } else {
+                    const history = allOrders.filter(o => o.status === 'DELIVERED' && o.riderId === currentRider.id);
+                    history.forEach(o => renderOrderCard(o, list));
+                }
             });
+        }
+
+        function renderOrderCard(d, container) {
+            const items = Object.values(d.items).map(i => `${i.name} (x${i.qty})`).join(', ');
+            container.innerHTML += `
+                <div class="bg-slate-800/50 border border-white/5 p-6 rounded-[2.5rem]">
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-[9px] font-black text-slate-500">#${d.orderId}</span>
+                        <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${d.status === 'PENDING' ? 'bg-orange-500' : 'bg-blue-500'} text-white">${d.status}</span>
+                    </div>
+                    <h4 class="text-lg font-black italic">${d.customer.name}</h4>
+                    <p class="text-[11px] text-slate-400 mb-4">${d.address}</p>
+                    <div class="flex justify-between items-center mb-4">
+                        <p class="text-xl font-black text-green-400">₹${d.total}</p>
+                        <div class="flex gap-2">
+                            <a href="tel:${d.customer.phone}" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/10"><i class="fa-solid fa-phone"></i></a>
+                        </div>
+                    </div>
+                    ${d.status === 'PENDING' ? `<button onclick="updateJob('${d.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-4 rounded-2xl font-black text-[11px] uppercase">Accept Job</button>` : ''}
+                    ${d.status === 'ACCEPTED' ? `<button onclick="updateJob('${d.id}', 'DELIVERED')" class="w-full bg-green-600 py-4 rounded-2xl font-black text-[11px] uppercase">Confirm Delivery</button>` : ''}
+                </div>`;
         }
 
         async function updateJob(id, newStatus) {
@@ -132,8 +138,17 @@
                 startSharingLocation(id);
             } else if (newStatus === 'DELIVERED') {
                 if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher);
+                sendCompletionNotification();
             }
             await db.collection("orders").doc(id).update(updateData);
+        }
+
+        function sendCompletionNotification() {
+            if (Notification.permission === "granted") {
+                new Notification("Delivery Complete!", { body: "You are now ready for new orders.", icon: "https://cdn-icons-png.flaticon.com/512/190/190411.png" });
+            } else {
+                alert("Delivery Confirmed! You are now back on duty.");
+            }
         }
 
         function startSharingLocation(orderId) {
@@ -146,11 +161,6 @@
             }
         }
 
-        function navigate(address) {
-            const gps = address.split('GPS: ')[1];
-            window.open(gps ? `https://www.google.com/maps?q=${gps}` : `https://www.google.com/maps/search/${encodeURIComponent(address)}`, '_blank');
-        }
-
         function switchTab(t) {
             currentTab = t;
             document.getElementById('tab-active').className = t === 'active' ? 'flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white' : 'flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400';
@@ -159,10 +169,6 @@
         }
 
         function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }
-        async function requestWithdrawal() {
-            const amt = prompt("Amount:");
-            if(amt) await db.collection("withdrawals").add({ riderId: currentRider.id, amount: Number(amt), status: "PENDING", timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-        }
     </script>
 </body>
 </html>
