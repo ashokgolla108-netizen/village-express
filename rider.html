@@ -68,19 +68,22 @@
             db.collection("orders").onSnapshot(snap => {
                 const list = document.getElementById('order-list'); list.innerHTML = "";
                 const allOrders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                
+                // Check if rider already has one ACTIVE job
                 const myActiveJob = allOrders.find(o => o.status === 'ACCEPTED' && o.riderId === currentRider.id);
 
                 if (currentTab === 'active') {
                     if (myActiveJob) {
+                        // FORCE FOCUS: Show only current active job
                         renderOrderCard(myActiveJob, list, true);
                         list.innerHTML += `<div class="p-10 text-center opacity-40 text-[9px] font-black uppercase italic tracking-widest">Complete current delivery to unlock new orders</div>`;
                         document.getElementById('duty-status').innerText = "On Active Delivery";
-                        document.getElementById('duty-status').classList.replace("text-green-400", "text-orange-400");
+                        document.getElementById('duty-status').className = "text-[10px] font-bold text-orange-400 uppercase mt-1";
                     } else {
                         const pending = allOrders.filter(o => o.status === 'PENDING');
                         pending.length === 0 ? list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic">NO NEW ORDERS</div>` : pending.forEach(o => renderOrderCard(o, list, false));
                         document.getElementById('duty-status').innerText = "Waiting for Orders";
-                        document.getElementById('duty-status').classList.replace("text-orange-400", "text-green-400");
+                        document.getElementById('duty-status').className = "text-[10px] font-bold text-green-400 uppercase mt-1";
                     }
                 } else {
                     allOrders.filter(o => o.status === 'DELIVERED' && o.riderId === currentRider.id).forEach(o => renderOrderCard(o, list, false));
@@ -98,7 +101,7 @@
                 <div class="flex justify-between items-center mt-2 mb-4"><p class="text-xl font-black text-green-400">₹${d.total}</p>
                     <div class="flex gap-2">
                         <a href="tel:${d.customer.phone}" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/10"><i class="fa-solid fa-phone"></i></a>
-                        <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordsOnly)}')" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10"><i class="fa-solid fa-map-location-dot"></i></button>
+                        <button onclick="window.open('https://www.google.com/maps?q=${encodeURIComponent(coordsOnly)}')" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10"><i class="fa-solid fa-map-location-dot"></i></button>
                     </div>
                 </div>
                 ${d.status === 'PENDING' ? `<button onclick="updateJob('${d.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Accept Order</button>` : ''}
@@ -112,13 +115,15 @@
                 if (newStatus === 'ACCEPTED') { 
                     data.riderId = currentRider.id; 
                     data.riderPhone = currentRider.phone; 
+                    
+                    // Clear any previous watcher to be safe
                     if (locationWatcher) navigator.geolocation.clearWatch(locationWatcher);
                     startSharingLocation(docId); 
                 }
                 else if (newStatus === 'DELIVERED') { 
                     if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher); 
                     locationWatcher = null;
-                    alert("Order Delivered! Returning to duty."); 
+                    alert("Order Delivered! You are now back on duty."); 
                 }
                 await db.collection("orders").doc(docId).update(data);
             } catch (e) { alert("Action failed."); }
@@ -129,7 +134,7 @@
                 locationWatcher = navigator.geolocation.watchPosition(pos => {
                     db.collection("orders").doc(docId).update({ 
                         riderLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude } 
-                    }).catch(err => console.log("Firebase Update Error", err));
+                    });
                 }, (err) => console.log("GPS ERROR", err), { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
             }
         }
