@@ -146,7 +146,7 @@
                 listDiv.innerHTML += `<div class="flex justify-between items-center"><div><p class="font-bold text-sm">${i.name}</p></div><div class="flex items-center gap-3 bg-white border rounded-xl px-2 py-1"><button onclick="updateQty('${i.id}', -1)" class="text-red-500 font-bold px-2">-</button><span class="text-sm font-black">${i.qty}</span><button onclick="updateQty('${i.id}', 1)" class="text-green-600 font-bold px-2">+</button></div></div>`; 
             });
             if(sub === 0) return closeCheckout();
-            document.getElementById('final-bill').innerHTML = `<div class="flex justify-between text-slate-400 text-[10px] font-bold mt-4"><span>Subtotal</span><span>₹${sub}</span></div><div class="flex justify-between text-xl font-black pt-2"><span>Total (+₹15 Fee)</span><span>₹${sub+15}</span></div>`;
+            document.getElementById('final-bill').innerHTML = `<div class="flex justify-between text-slate-400 text-[10px] font-bold mt-4"><span>Subtotal</span><span>₹${sub}</span></div><div class="flex justify-between text-xl font-black pt-2"><span>Total (+₹15)</span><span>₹${sub+15}</span></div>`;
             document.getElementById('checkout-view').classList.remove('hidden');
         }
 
@@ -178,9 +178,9 @@
                     const isAccepted = d.status === "ACCEPTED" && d.riderLocation;
                     let mapUrl = isAccepted ? `https://www.google.com/maps?q=${d.riderLocation.lat},${d.riderLocation.lng}` : "#";
 
-                    list.innerHTML += `<div class="bg-white p-5 rounded-[2.5rem] border mb-4 shadow-sm">
-                        <div class="flex justify-between mb-2"><span class="text-[9px] font-black text-slate-300">#${d.orderId}</span><span class="px-3 py-1 ${d.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'} rounded-full text-[8px] font-black uppercase">${d.status}</span></div>
-                        <p class="text-xs font-bold text-slate-600">${Object.values(d.items).map(i => i.name).join(', ')}</p>
+                    list.innerHTML += `<div class="bg-white p-5 rounded-[2.5rem] border mb-4">
+                        <div class="flex justify-between mb-2"><span class="text-[9px] font-black">#${d.orderId}</span><span class="px-3 py-1 ${d.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'} rounded-full text-[8px] font-black uppercase">${d.status}</span></div>
+                        <p class="text-xs font-bold">${Object.values(d.items).map(i => i.name).join(', ')}</p>
                         ${isAccepted ? `<div class="mt-3 p-3 bg-blue-50 rounded-2xl border border-blue-100 flex justify-between items-center"><span class="text-[9px] font-black text-blue-600 uppercase tracking-tighter">Rider is on the way</span><a href="${mapUrl}" target="_blank" class="bg-blue-600 text-white px-4 py-2 rounded-xl text-[9px] font-black">TRACK LIVE</a></div>` : ''}
                         <div class="flex justify-between items-end mt-4"><p class="text-lg font-black">₹${d.total}</p><div class="flex gap-2">${d.status === "PENDING" ? `<button onclick="cancelOrder('${doc.id}')" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Cancel</button>` : ''}${d.riderPhone ? `<a href="tel:${d.riderPhone}" class="bg-slate-900 text-white w-10 h-10 rounded-xl flex items-center justify-center"><i class="fa-solid fa-phone text-xs"></i></a>` : ''}</div></div></div>`;
                 });
@@ -188,12 +188,13 @@
         }
 
         async function cancelOrder(id) { if(confirm("Cancel order?")) { await db.collection("orders").doc(id).update({ status: "CANCELLED" }); alert("Cancelled."); } }
-        function getPreciseGPS(btn) { btn.innerText = "LOCATING..."; navigator.geolocation.getCurrentPosition(pos => { document.getElementById('order-address').value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`; btn.innerText = "LOCATION FIXED ✅"; }, null, { enableHighAccuracy: true }); }
+        function getPreciseGPS(btn) { btn.innerText = "LOCATING..."; navigator.geolocation.getCurrentPosition(pos => { document.getElementById('order-address').value = `${pos.coords.latitude.toFixed(6)}, ${pos.coords.longitude.toFixed(6)}`; btn.innerText = "FIXED ✅"; }, null, { enableHighAccuracy: true }); }
         function closeCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
         function openProfile() { document.getElementById('profile-view').classList.remove('hidden'); }
         function closeProfile() { document.getElementById('profile-view').classList.add('hidden'); }
         function handleLogout() { localStorage.removeItem('user_session'); location.reload(); }
         function toggleAuthView(v) { document.getElementById('login-view').classList.toggle('hidden', v !== 'login'); document.getElementById('register-view').classList.toggle('hidden', v !== 'register'); }
+        function handleSearch(v) { renderItems(allProducts.filter(p => p.name.toLowerCase().includes(v.toLowerCase()))); }
     </script>
 </body>
 </html>
