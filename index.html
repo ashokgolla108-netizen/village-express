@@ -10,32 +10,24 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F7F9FB; }
-        .product-card { background: white; border-radius: 20px; padding: 12px; border: 1px solid #f1f5f9; }
-        .qty-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F7F9FB; -webkit-tap-highlight-color: transparent; }
+        .product-card { background: white; border-radius: 24px; padding: 12px; border: 1px solid #f1f5f9; transition: all 0.2s; }
+        .qty-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body class="pb-32">
 
-    <div id="auth-section" class="fixed inset-0 bg-white z-[1000] p-8 flex flex-col justify-center overflow-y-auto">
+    <div id="auth-section" class="fixed inset-0 bg-white z-[2000] p-8 flex flex-col justify-center">
         <div class="text-center space-y-6 max-w-sm mx-auto w-full">
             <h1 class="text-4xl font-black italic text-green-700 uppercase">Village<span class="text-orange-500">Express</span></h1>
-            
-            <div id="auth-form" class="space-y-4">
-                <div id="signup-fields" class="hidden space-y-4">
-                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
-                </div>
-                <input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
-                <input type="password" id="auth-pass" placeholder="Password" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
-                
-                <button id="auth-btn" onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl">LOGIN</button>
+            <div id="signup-fields" class="hidden space-y-4">
+                <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
             </div>
-
-            <div class="flex flex-col gap-4 text-sm font-bold">
-                <button onclick="toggleAuthMode()" id="toggle-text" class="text-slate-500">New here? <span class="text-green-600">Create Account</span></button>
-                <button onclick="forgotPassword()" class="text-slate-400 text-xs">Forgot Password?</button>
-            </div>
+            <input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
+            <input type="password" id="auth-pass" placeholder="Password" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
+            <button id="auth-btn" onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl">LOGIN</button>
+            <button onclick="toggleAuthMode()" id="toggle-text" class="text-sm font-bold text-slate-500">New here? <span class="text-green-600">Create Account</span></button>
         </div>
     </div>
 
@@ -48,37 +40,46 @@
         <main id="items-grid" class="px-4 grid grid-cols-2 gap-4 mt-2"></main>
 
         <nav class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-around items-center z-[150] shadow-2xl">
-            <button onclick="renderCategories()" class="flex flex-col items-center text-green-600"><i class="fa-solid fa-house text-xl"></i><span class="text-[10px] font-bold mt-1 uppercase">Home</span></button>
-            <button onclick="showPage('orders')" class="flex flex-col items-center text-slate-300"><i class="fa-solid fa-bag-shopping text-xl"></i><span class="text-[10px] font-bold mt-1 uppercase">Orders</span></button>
+            <button onclick="renderCategories()" class="flex flex-col items-center text-green-600"><i class="fa-solid fa-house text-xl"></i><span class="text-[10px] font-bold mt-1">HOME</span></button>
+            <button onclick="showPage('orders')" class="flex flex-col items-center text-slate-300"><i class="fa-solid fa-bag-shopping text-xl"></i><span class="text-[10px] font-bold mt-1">ORDERS</span></button>
         </nav>
 
         <div id="cart-bar" class="fixed bottom-24 left-4 right-4 hidden z-[100]">
             <button onclick="openCheckout()" class="w-full bg-slate-900 text-white flex justify-between items-center p-4 rounded-2xl shadow-2xl">
-                <div><p id="cart-count" class="text-[10px] font-bold">0 ITEMS</p><p id="cart-total-bar" class="text-xl font-black">₹0</p></div>
-                <div class="bg-green-600 px-6 py-2 rounded-xl text-xs font-black uppercase tracking-tighter">Review Order</div>
+                <div class="text-left"><p id="cart-count" class="text-[10px] font-bold opacity-60">0 ITEMS</p><p id="cart-total-bar" class="text-xl font-black">₹0</p></div>
+                <div class="bg-green-600 px-6 py-2 rounded-xl text-xs font-black uppercase">Review Order</div>
             </button>
         </div>
 
         <div id="orders-page" class="fixed inset-0 bg-slate-50 z-[200] hidden overflow-y-auto p-6 pb-32">
-            <div class="flex items-center gap-4 mb-6">
-                <button onclick="showPage('home')" class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></button>
-                <h2 class="font-black text-2xl text-slate-900 tracking-tight">Order History</h2>
-            </div>
+            <div class="flex items-center gap-4 mb-6"><button onclick="showPage('home')" class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black text-2xl">Orders</h2></div>
             <div id="orders-history-list" class="space-y-4"></div>
         </div>
     </div>
 
     <div id="checkout-view" class="fixed inset-0 bg-white z-[2000] hidden overflow-y-auto p-6">
-        <div class="flex items-center gap-4 mb-6">
-            <button onclick="closeCheckout()" class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></button>
-            <h2 class="font-black text-xl tracking-tight">Review Order</h2>
-        </div>
-        <div id="checkout-list" class="space-y-4 mb-6"></div>
-        <div class="space-y-4 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-            <input type="text" id="order-addr" placeholder="Flat / Street / Landmark" class="w-full p-4 bg-white rounded-2xl text-sm border shadow-sm outline-none">
-            <button onclick="getGPS(this)" class="w-full p-4 bg-blue-50 text-blue-600 font-black text-[10px] rounded-2xl border border-blue-100 tracking-widest uppercase">📍 Confirm GPS Location</button>
-            <div id="bill-details" class="pt-4 border-t"></div>
-            <button onclick="placeOrder()" class="w-full bg-slate-900 text-white py-5 rounded-2xl font-black shadow-xl">PLACE ORDER</button>
+        <div class="flex items-center gap-4 mb-6"><button onclick="closeCheckout()" class="w-10 h-10 bg-slate-100 rounded-xl flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black text-xl">Review Order</h2></div>
+        
+        <div class="space-y-4 mb-8">
+            <div class="bg-slate-50 p-4 rounded-3xl space-y-3">
+                <p class="text-[10px] font-black text-slate-400 uppercase px-2">Contact Details</p>
+                <input type="text" id="order-name" placeholder="Name" class="w-full p-4 bg-white rounded-2xl text-sm border-none shadow-sm outline-none">
+                <input type="tel" id="order-phone" placeholder="Mobile Number" class="w-full p-4 bg-white rounded-2xl text-sm border-none shadow-sm outline-none">
+                <input type="text" id="order-addr" placeholder="Address / Landmark" class="w-full p-4 bg-white rounded-2xl text-sm border-none shadow-sm outline-none">
+                <button onclick="getGPS(this)" class="w-full p-4 bg-blue-50 text-blue-600 font-black text-[10px] rounded-2xl border border-blue-100 uppercase">📍 Confirm GPS</button>
+            </div>
+
+            <div id="checkout-list" class="space-y-2"></div>
+
+            <div class="bg-slate-900 p-6 rounded-[2.5rem] text-white">
+                <p class="text-[10px] font-black opacity-40 uppercase mb-4">Payment Method</p>
+                <div class="grid grid-cols-2 gap-3 mb-6">
+                    <button onclick="setPayment('CASH')" id="pay-cash" class="py-4 rounded-2xl border border-white/10 font-black text-xs bg-white/5">CASH</button>
+                    <button onclick="setPayment('UPI')" id="pay-upi" class="py-4 rounded-2xl border border-white/10 font-black text-xs bg-white/5">UPI</button>
+                </div>
+                <div id="bill-details" class="space-y-2 border-t border-white/10 pt-4"></div>
+                <button onclick="placeOrder()" class="w-full bg-green-600 text-white py-5 rounded-2xl font-black shadow-xl mt-6 uppercase tracking-widest">Place Order</button>
+            </div>
         </div>
     </div>
 
@@ -88,64 +89,32 @@
         const db = firebase.firestore();
 
         let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
-        let cart = {}, gps = "", isSignup = false;
+        let cart = {}, gps = "", isSignup = false, paymentMethod = "CASH";
 
         window.onload = () => { if(currentUser) showMainApp(); };
 
-        // Toggle between Login and Signup
         function toggleAuthMode() {
             isSignup = !isSignup;
             document.getElementById('signup-fields').classList.toggle('hidden', !isSignup);
             document.getElementById('auth-btn').innerText = isSignup ? "CREATE ACCOUNT" : "LOGIN";
-            document.getElementById('toggle-text').innerHTML = isSignup ? 
-                `Already have an account? <span class="text-green-600">Login</span>` : 
-                `New here? <span class="text-green-600">Create Account</span>`;
         }
 
         async function handleAuth() {
             const phone = document.getElementById('auth-phone').value;
             const pass = document.getElementById('auth-pass').value;
-            const name = document.getElementById('reg-name').value;
-
-            if(!phone || !pass) return alert("Please fill all fields");
-
             if(isSignup) {
-                if(!name) return alert("Please enter your name");
-                // Check if user exists
-                const check = await db.collection("users").where("phone", "==", phone).get();
-                if(!check.empty) return alert("User already exists. Please login.");
-                
-                const newUser = { name, phone, pass, created: firebase.firestore.FieldValue.serverTimestamp() };
-                await db.collection("users").add(newUser);
-                loginUser(newUser);
+                const name = document.getElementById('reg-name').value;
+                const user = { name, phone, pass };
+                await db.collection("users").add(user);
+                loginUser(user);
             } else {
                 const s = await db.collection("users").where("phone","==",phone).get();
-                if(!s.empty && s.docs[0].data().pass === pass) {
-                    loginUser(s.docs[0].data());
-                } else {
-                    alert("Invalid phone or password");
-                }
+                if(!s.empty && s.docs[0].data().pass === pass) loginUser(s.docs[0].data());
+                else alert("Check details");
             }
         }
 
-        function loginUser(userData) {
-            localStorage.setItem('user_session', JSON.stringify(userData));
-            currentUser = userData;
-            showMainApp();
-        }
-
-        function forgotPassword() {
-            const phone = prompt("Enter your registered mobile number:");
-            if(phone) {
-                db.collection("users").where("phone", "==", phone).get().then(snap => {
-                    if(!snap.empty) {
-                        alert("Please contact Admin at +91-XXXXXXXXXX to reset your password for security reasons.");
-                    } else {
-                        alert("Number not found.");
-                    }
-                });
-            }
-        }
+        function loginUser(u) { localStorage.setItem('user_session', JSON.stringify(u)); currentUser = u; location.reload(); }
 
         function showMainApp() {
             document.getElementById('auth-section').classList.add('hidden');
@@ -154,17 +123,12 @@
             renderCategories();
         }
 
-        // Logic for rendering products, categories, cart, and orders remains unchanged...
-        // [Existing functions: renderCategories, renderProducts, updateQty, updateCartUI, openCheckout, placeOrder, loadOrderHistory, getGPS, handleLogout, showPage, closeCheckout]
-        // Note: Ensure the rest of the functions from previous code are included here to keep full logic.
-
         function renderCategories() {
             const grid = document.getElementById('items-grid');
             grid.innerHTML = `<p class="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Categories</p>`;
             db.collection("categories").onSnapshot(snap => {
                 snap.forEach(doc => {
-                    const c = doc.data();
-                    grid.innerHTML += `<div onclick="renderProducts('${doc.id}', '${c.name}')" class="product-card flex flex-col items-center justify-center gap-2"><div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 text-xl"><i class="fa-solid fa-layer-group"></i></div><p class="text-[10px] font-black text-center uppercase tracking-tighter">${c.name}</p></div>`;
+                    grid.innerHTML += `<div onclick="renderProducts('${doc.id}', '${doc.data().name}')" class="product-card flex flex-col items-center justify-center gap-2"><div class="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 text-xl"><i class="fa-solid fa-layer-group"></i></div><p class="text-[10px] font-black text-center uppercase">${doc.data().name}</p></div>`;
                 });
             });
         }
@@ -178,16 +142,16 @@
                     if(!p.inStock) return;
                     const qty = cart[p.id]?.qty || 0;
                     grid.innerHTML += `
-                    <div class="product-card shadow-sm text-center">
+                    <div class="product-card text-center">
                         <div class="w-full aspect-square flex items-center justify-center text-3xl text-slate-200 mb-2"><i class="fa-solid ${p.icon || 'fa-box'}"></i></div>
-                        <p class="text-[10px] font-bold text-slate-500 truncate">${p.name}</p>
-                        <p class="text-sm font-black text-slate-900 mb-2">₹${p.price}</p>
+                        <p class="text-[10px] font-bold text-slate-500 truncate px-2">${p.name}</p>
+                        <p class="text-sm font-black text-slate-900 mb-3">₹${p.price}</p>
                         ${qty === 0 ? 
-                            `<button onclick="updateQty('${p.id}', 1)" class="w-full py-2 bg-green-50 text-green-600 border border-green-200 rounded-lg text-[10px] font-black uppercase tracking-tighter">Add</button>` :
-                            `<div class="flex items-center justify-between w-full bg-green-600 text-white rounded-lg p-1">
-                                <button onclick="updateQty('${p.id}', -1)" class="qty-btn"><i class="fa-solid fa-minus text-[10px]"></i></button>
+                            `<button onclick="updateQty('${p.id}', 1)" class="w-full py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase">Add</button>` :
+                            `<div class="flex items-center justify-between bg-green-600 text-white rounded-xl p-1">
+                                <button onclick="updateQty('${p.id}', -1)" class="qty-btn bg-white/20"><i class="fa-solid fa-minus text-[10px]"></i></button>
                                 <span class="text-xs font-black">${qty}</span>
-                                <button onclick="updateQty('${p.id}', 1)" class="qty-btn"><i class="fa-solid fa-plus text-[10px]"></i></button>
+                                <button onclick="updateQty('${p.id}', 1)" class="qty-btn bg-white/20"><i class="fa-solid fa-plus text-[10px]"></i></button>
                             </div>`
                         }
                     </div>`;
@@ -212,52 +176,67 @@
             document.getElementById('cart-count').innerText = `${count} ITEMS`;
         }
 
+        function setPayment(m) {
+            paymentMethod = m;
+            document.getElementById('pay-cash').className = m === 'CASH' ? 'py-4 rounded-2xl border border-green-500 font-black text-xs bg-green-500/10 text-green-500' : 'py-4 rounded-2xl border border-white/10 font-black text-xs bg-white/5';
+            document.getElementById('pay-upi').className = m === 'UPI' ? 'py-4 rounded-2xl border border-green-500 font-black text-xs bg-green-500/10 text-green-500' : 'py-4 rounded-2xl border border-white/10 font-black text-xs bg-white/5';
+        }
+
         function openCheckout() {
+            document.getElementById('order-name').value = currentUser.name;
+            document.getElementById('order-phone').value = currentUser.phone;
             const list = document.getElementById('checkout-list'); list.innerHTML = "";
             let sub = 0;
             Object.values(cart).forEach(i => {
                 sub += i.price * i.qty;
-                list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border"><div class="text-xs font-bold text-slate-700">${i.name}</div><div class="flex items-center bg-white border rounded-xl px-2 py-1 gap-4"><button onclick="updateQty('${i.id}', -1)" class="text-green-600"><i class="fa-solid fa-minus text-[10px]"></i></button><span class="text-xs font-black">${i.qty}</span><button onclick="updateQty('${i.id}', 1)" class="text-green-600"><i class="fa-solid fa-plus text-[10px]"></i></button></div></div>`;
+                list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                    <div class="text-xs font-bold text-slate-700">${i.name}</div>
+                    <div class="flex items-center gap-4"><button onclick="updateQty('${i.id}', -1)" class="text-slate-400"><i class="fa-solid fa-minus text-[10px]"></i></button><span class="text-xs font-black">${i.qty}</span><button onclick="updateQty('${i.id}', 1)" class="text-green-600"><i class="fa-solid fa-plus text-[10px]"></i></button></div>
+                </div>`;
             });
-            document.getElementById('bill-details').innerHTML = `<div class="flex justify-between font-black text-lg"><span>Total</span><span>₹${sub+15}</span></div>`;
+            document.getElementById('bill-details').innerHTML = `<div class="flex justify-between font-black text-lg"><span>Total Payable</span><span>₹${sub+15}</span></div>`;
+            setPayment('CASH');
             document.getElementById('checkout-view').classList.remove('hidden');
         }
 
         async function placeOrder() {
             if(!gps) return alert("Confirm GPS First");
             let sub = 0; Object.values(cart).forEach(i => sub += (i.price * i.qty));
+            const total = sub + 15;
+            
+            if(paymentMethod === 'UPI') {
+                window.location.href = `upi://pay?pa=8328016917-3@ybl&pn=VillageExpress&am=${total}&cu=INR`;
+            }
+
             await db.collection("orders").add({
                 orderId: "VE" + Math.floor(1000 + Math.random()*8999),
-                customer: { name: currentUser.name, phone: currentUser.phone, user_id: currentUser.phone },
-                address: document.getElementById('order-addr').value + " | GPS: " + gps, items: cart, total: sub + 15, status: "PENDING", 
+                customer: { name: document.getElementById('order-name').value, phone: document.getElementById('order-phone').value, user_id: currentUser.phone },
+                address: document.getElementById('order-addr').value + " | GPS: " + gps, items: cart, total: total, status: "PENDING", payment: paymentMethod,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
             });
-            alert("Order Placed!"); location.reload();
+            alert("Order Success!"); location.reload();
         }
 
         function loadOrderHistory() {
             const list = document.getElementById('orders-history-list');
             db.collection("orders").where("customer.user_id", "==", currentUser.phone).onSnapshot(snap => {
-                if(snap.empty) return list.innerHTML = `<p class="text-center py-20 text-slate-400 font-black uppercase tracking-widest text-[10px]">No orders yet</p>`;
+                if(snap.empty) return list.innerHTML = `<p class="text-center py-20 text-slate-400 font-bold text-[10px]">NO ORDERS YET</p>`;
                 let html = "";
                 snap.docs.sort((a,b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0)).forEach(doc => {
                     const d = doc.data();
-                    const isAccepted = d.status === "ACCEPTED" && d.riderLocation;
-                    html += `
-                    <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm mb-4">
+                    html += `<div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm mb-4">
                         <div class="flex justify-between items-start mb-4">
-                            <div><span class="text-[9px] font-black text-slate-300 uppercase tracking-tighter">#${d.orderId}</span><h3 class="text-sm font-black ${d.status === 'ACCEPTED' ? 'text-orange-500' : 'text-green-600'}">${d.status}</h3></div>
-                            <span class="font-black text-xl text-slate-900">₹${d.total}</span>
+                            <div><span class="text-[9px] font-black text-slate-300 uppercase">#${d.orderId}</span><h3 class="text-sm font-black text-green-600">${d.status}</h3></div>
+                            <span class="font-black text-xl">₹${d.total}</span>
                         </div>
-                        ${isAccepted ? `<div class="w-full h-44 rounded-2xl mb-4 overflow-hidden border border-slate-100 bg-slate-50"><iframe width="100%" height="100%" frameborder="0" src="https://maps.google.com/maps?q=${d.riderLocation.lat},${d.riderLocation.lng}&z=16&output=embed"></iframe></div>` : ''}
-                        <div class="flex items-center gap-2"><div class="p-2 bg-slate-50 rounded-lg text-slate-400"><i class="fa-solid fa-box-open text-xs"></i></div><p class="text-[10px] font-bold text-slate-500 truncate">${Object.values(d.items).map(i => i.name).join(', ')}</p></div>
+                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">${d.payment}</p>
                     </div>`;
                 });
                 list.innerHTML = html;
             });
         }
 
-        function getGPS(btn) { navigator.geolocation.getCurrentPosition(p => { gps = p.coords.latitude + "," + p.coords.longitude; btn.innerText = "Fixed ✅"; btn.className = "w-full p-4 bg-green-50 text-green-600 font-black rounded-2xl border border-green-100 text-[10px] tracking-widest"; }, null, {enableHighAccuracy:true}); }
+        function getGPS(btn) { navigator.geolocation.getCurrentPosition(p => { gps = p.coords.latitude + "," + p.coords.longitude; btn.innerText = "LOCATION FIXED ✅"; btn.className = "w-full p-4 bg-green-50 text-green-600 font-black rounded-2xl border border-green-100 text-[10px]"; }, null, {enableHighAccuracy:true}); }
         function handleLogout() { localStorage.removeItem('user_session'); location.reload(); }
         function showPage(p) { document.getElementById('orders-page').classList.toggle('hidden', p !== 'orders'); if(p === 'orders') loadOrderHistory(); }
         function closeCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
