@@ -2,279 +2,103 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Village Express - Shop</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Village Express - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
-        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #FEFDF5; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
-        .category-card { transition: transform 0.1s ease; cursor: pointer; }
-        .category-card:active { transform: scale(0.92); }
-        /* Hide scrollbar for Chrome, Safari and Opera */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-    </style>
 </head>
-<body class="text-slate-900 pb-32">
+<body class="bg-slate-50 min-h-screen pb-24">
+    <header class="bg-white p-6 border-b sticky top-0 z-50 flex justify-between items-center">
+        <div>
+            <h1 class="text-xl font-black italic tracking-tighter uppercase">Village Express</h1>
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Admin Panel</p>
+        </div>
+        <div class="flex gap-2">
+            <button onclick="showSection('stats')" class="p-3 bg-slate-100 rounded-xl text-slate-600"><i class="fa-solid fa-chart-line"></i></button>
+            <button onclick="showSection('inventory')" class="p-3 bg-slate-100 rounded-xl text-slate-600"><i class="fa-solid fa-boxes-stacked"></i></button>
+        </div>
+    </header>
 
-    <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-6 flex flex-col justify-center items-center">
-        <div id="login-view" class="w-full max-w-sm space-y-6 text-center">
-            <h1 class="text-4xl font-extrabold italic text-green-700 tracking-tighter">VILLAGE<span class="text-orange-500">EXPRESS</span></h1>
+    <section id="sec-stats" class="p-4 space-y-4">
+        <div class="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl">
+            <p class="text-[10px] font-black opacity-50 uppercase mb-1">Total Sales</p>
+            <h2 id="total-revenue" class="text-4xl font-black italic mb-6">₹0</h2>
+            <div class="grid grid-cols-2 gap-4 border-t border-white/10 pt-6">
+                <div><p class="text-[9px] font-bold opacity-50 uppercase">Profit (10%)</p><p id="total-profit" class="text-xl font-black text-green-400">₹0</p></div>
+                <div><p class="text-[9px] font-bold opacity-50 uppercase">Fees Collected</p><p id="total-fees" class="text-xl font-black text-blue-400">₹0</p></div>
+            </div>
+        </div>
+        <div id="payout-list" class="space-y-3 mt-6"></div>
+    </section>
+
+    <section id="sec-inventory" class="p-4 hidden">
+        <div class="bg-white p-6 rounded-3xl border mb-6 shadow-sm">
+            <h3 class="font-black text-sm uppercase mb-4">Add Item</h3>
             <div class="space-y-3">
-                <input type="tel" id="login-phone" placeholder="Mobile Number" class="w-full p-4 bg-slate-100 rounded-2xl outline-none border border-transparent focus:border-green-500">
-                <input type="password" id="login-pass" placeholder="Password" class="w-full p-4 bg-slate-100 rounded-2xl outline-none border border-transparent focus:border-green-500">
-            </div>
-            <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black text-sm tracking-widest shadow-xl active:scale-95 transition-all">LOGIN</button>
-            <p class="text-xs font-bold text-slate-400 uppercase">New Here? <button onclick="toggleAuthView('register')" class="text-blue-600 underline">Create Account</button></p>
-        </div>
-        <div id="register-view" class="w-full max-w-sm space-y-4 hidden text-center">
-            <h1 class="text-2xl font-black mb-4">Join Us</h1>
-            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
-            <input type="tel" id="reg-phone" placeholder="Mobile Number" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
-            <input type="password" id="reg-pass" placeholder="Password" class="w-full p-4 bg-slate-100 rounded-2xl outline-none">
-            <button onclick="handleRegister()" class="w-full bg-green-700 text-white p-5 rounded-2xl font-black text-sm shadow-xl">REGISTER</button>
-            <button onclick="toggleAuthView('login')" class="text-xs font-bold text-slate-400 uppercase mt-4">Back to Login</button>
-        </div>
-    </div>
-
-    <div id="main-app" class="hidden opacity-0 transition-opacity duration-500">
-        <header class="sticky top-0 z-[100] bg-[#FEFDF5] px-4 pt-4 pb-2">
-            <div class="relative flex items-center bg-white border border-slate-200 rounded-xl px-4 py-3 shadow-sm mb-4">
-                <i class="fa-solid fa-search text-slate-400 mr-3"></i>
-                <input type="text" oninput="handleSearch(this.value)" placeholder="Search for vegetables, meat, snacks..." class="flex-1 bg-transparent outline-none text-sm font-medium">
-            </div>
-
-            <div class="flex justify-between items-center text-center px-1 mb-2 overflow-x-auto no-scrollbar gap-4">
-                <div class="min-w-[60px]"><div class="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto text-green-600"><i class="fa-solid fa-leaf"></i></div><p class="text-[9px] font-bold text-slate-500 mt-1">Pharmacy</p></div>
-                <div class="min-w-[60px]"><div class="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto text-orange-500"><i class="fa-solid fa-drumstick-bite"></i></div><p class="text-[9px] font-bold text-slate-500 mt-1">Meat</p></div>
-                <div class="min-w-[60px]"><div class="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto text-blue-500"><i class="fa-solid fa-ice-cream"></i></div><p class="text-[9px] font-bold text-slate-500 mt-1">Snacks</p></div>
-                <div class="min-w-[60px]"><div class="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto text-purple-500"><i class="fa-solid fa-gift"></i></div><p class="text-[9px] font-bold text-slate-500 mt-1">Gifting</p></div>
-                <div class="min-w-[60px]" onclick="openProfile()"><div class="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mx-auto text-slate-700"><i class="fa-solid fa-user"></i></div><p class="text-[9px] font-bold text-slate-500 mt-1">Profile</p></div>
-            </div>
-        </header>
-
-        <main class="px-4 mt-2">
-            <div id="items-grid" class="grid grid-cols-4 gap-x-2 gap-y-6">
-                </div>
-        </main>
-
-        <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-8 py-3 flex justify-between items-center z-[150] shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
-            <div class="text-center text-orange-600" onclick="location.reload()">
-                <i class="fa-solid fa-house text-lg"></i>
-                <p class="text-[9px] font-extrabold uppercase mt-1">Home</p>
-            </div>
-            <div class="text-center text-slate-300" onclick="openProfile()">
-                <i class="fa-solid fa-bag-shopping text-lg"></i>
-                <p class="text-[9px] font-extrabold uppercase mt-1">Orders</p>
-            </div>
-            <div class="text-center text-slate-300">
-                <i class="fa-solid fa-tags text-lg"></i>
-                <p class="text-[9px] font-extrabold uppercase mt-1">Offers</p>
-            </div>
-        </nav>
-
-        <div id="checkout-view" class="fixed inset-0 bg-white z-[250] hidden overflow-y-auto p-6">
-            <div class="flex items-center gap-4 mb-6">
-                <button onclick="closeCheckout()" class="w-10 h-10 flex items-center justify-center bg-slate-100 rounded-xl"><i class="fa-solid fa-arrow-left text-sm"></i></button>
-                <h2 class="font-black text-xl italic tracking-tight">Checkout</h2>
-            </div>
-            
-            <div id="checkout-items-list" class="space-y-4 bg-slate-50 p-5 rounded-3xl mb-6 border border-slate-100"></div>
-            
-            <div class="space-y-4">
-                <div class="bg-white border rounded-2xl p-4 space-y-3 shadow-sm">
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Delivery Details</p>
-                    <input type="text" id="order-cust-name" placeholder="Receiver Name" class="w-full p-3 bg-slate-50 rounded-xl text-sm outline-none border border-slate-100">
-                    <input type="tel" id="order-cust-phone" placeholder="Phone Number" class="w-full p-3 bg-slate-50 rounded-xl text-sm outline-none border border-slate-100">
-                    <button onclick="getPreciseGPS(this)" class="w-full py-3 rounded-xl bg-blue-50 text-blue-600 font-black text-[10px] uppercase border border-blue-100">📍 Confirm GPS Location</button>
-                    <input type="text" id="order-building" placeholder="Door No / Street / Landmark" class="w-full p-3 bg-slate-50 rounded-xl text-sm outline-none border border-slate-100">
-                    <textarea id="order-address" readonly class="w-full p-3 bg-slate-100 rounded-xl italic text-[9px] text-slate-400 outline-none resize-none border-none" placeholder="GPS Coordinates will appear here"></textarea>
-                </div>
-
+                <input type="text" id="p-name" placeholder="Item Name" class="w-full p-4 bg-slate-50 rounded-2xl text-sm outline-none border">
                 <div class="grid grid-cols-2 gap-3">
-                    <button onclick="setPayment('COD')" id="pay-cod" class="pay-btn border-2 border-green-600 bg-green-50 p-4 rounded-2xl text-[10px] font-black text-green-700">CASH ON DELIVERY</button>
-                    <button onclick="setPayment('UPI')" id="pay-upi" class="pay-btn border-2 border-slate-100 p-4 rounded-2xl text-[10px] font-black text-slate-400">UPI / ONLINE</button>
+                    <input type="number" id="p-price" placeholder="Price" class="p-4 bg-slate-50 rounded-2xl text-sm outline-none border">
+                    <select id="p-cat" class="p-4 bg-slate-50 rounded-2xl text-sm font-bold border">
+                        <option>Vegetables & Fruits</option>
+                        <option>Chicken, Meat & Fish</option>
+                        <option>Snacks & Drinks</option>
+                        <option>Rice & Groceries</option>
+                        <option>Others</option>
+                    </select>
                 </div>
-
-                <div id="final-bill" class="p-2"></div>
-                
-                <button onclick="placeOrder()" id="btn-confirm" class="w-full bg-slate-900 text-white py-5 rounded-3xl font-black text-sm tracking-widest mt-4 shadow-xl active:scale-95 transition-all">PLACE ORDER</button>
+                <input type="text" id="p-img" placeholder="Image URL" class="w-full p-4 bg-slate-50 rounded-2xl text-sm border">
+                <button onclick="addProduct()" class="w-full bg-slate-900 text-white p-4 rounded-2xl font-black text-xs">SAVE ITEM</button>
             </div>
         </div>
-
-        <div id="cart-bar" class="fixed bottom-24 left-4 right-4 z-[150] hidden">
-            <button onclick="openCheckout()" class="w-full bg-slate-900 text-white flex justify-between items-center p-4 rounded-2xl shadow-2xl">
-                <div class="pl-2 text-left">
-                    <p id="cart-count" class="text-[9px] font-bold text-slate-400 uppercase">0 Items</p>
-                    <p id="cart-total-bar" class="text-xl font-black italic">₹0</p>
-                </div>
-                <div class="flex items-center gap-2 bg-green-600 px-6 py-3 rounded-xl">
-                    <span class="text-[11px] font-black uppercase">Review Order</span>
-                    <i class="fa-solid fa-chevron-right text-[10px]"></i>
-                </div>
-            </button>
-        </div>
-
-        <div id="profile-view" class="fixed inset-0 bg-[#F8F9FB] z-[200] hidden overflow-y-auto">
-            <div class="p-4 glass flex justify-between items-center border-b sticky top-0">
-                <button onclick="closeProfile()" class="w-10 h-10 bg-white rounded-xl shadow-sm"><i class="fa-solid fa-arrow-left"></i></button>
-                <h2 class="font-black italic text-lg" id="user-display-name">My Orders</h2>
-                <button onclick="handleLogout()" class="bg-red-50 text-red-600 px-4 py-2 rounded-xl text-[9px] font-black uppercase">Logout</button>
-            </div>
-            <div id="history-list" class="p-4 space-y-4">
-                </div>
-        </div>
-    </div>
+        <div id="admin-product-list" class="space-y-3"></div>
+    </section>
 
     <script>
-        // --- FIREBASE CONFIG ---
         const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };
         firebase.initializeApp(config);
         const db = firebase.firestore();
 
-        let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
-        let allProducts = [], cart = {}, selectedPayment = 'COD';
+        async function addProduct() {
+            const n = document.getElementById('p-name').value, pr = Number(document.getElementById('p-price').value), c = document.getElementById('p-cat').value, im = document.getElementById('p-img').value;
+            if(!n || !pr) return alert("Missing Info");
+            await db.collection("products").add({ name: n, price: pr, category: c, image: im, inStock: true });
+            alert("Added!"); document.getElementById('p-name').value = "";
+        }
 
-        window.onload = () => { if(!currentUser) { document.getElementById('auth-overlay').style.display = 'flex'; } else { initApp(); } };
-
-        function initApp() {
-            document.getElementById('auth-overlay').style.display = 'none';
-            document.getElementById('main-app').classList.remove('hidden');
-            setTimeout(() => document.getElementById('main-app').style.opacity = '1', 50);
-            document.getElementById('user-display-name').innerText = currentUser.name;
-            
-            // Listen to Products (Filter by Stock in JS)
-            db.collection("products").onSnapshot(snap => { 
-                allProducts = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); 
-                renderItems(allProducts); 
+        db.collection("products").onSnapshot(snap => {
+            const list = document.getElementById('admin-product-list'); list.innerHTML = "";
+            snap.forEach(doc => {
+                const p = doc.data();
+                list.innerHTML += `<div class="bg-white p-4 rounded-2xl border flex items-center justify-between">
+                    <div class="flex items-center gap-3"><img src="${p.image}" class="w-10 h-10 rounded-lg object-cover">
+                    <div><p class="text-xs font-black">${p.name}</p><p class="text-[9px] font-bold text-slate-400">₹${p.price} | ${p.category}</p></div></div>
+                    <div class="flex gap-2">
+                        <button onclick="toggleStock('${doc.id}', ${p.inStock})" class="px-3 py-1 rounded-lg text-[8px] font-black ${p.inStock ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'} uppercase">${p.inStock ? 'In Stock' : 'Out'}</button>
+                        <button onclick="deleteItem('${doc.id}')" class="p-2 text-slate-300"><i class="fa-solid fa-trash"></i></button>
+                    </div></div>`;
             });
-            loadHistory();
-        }
+        });
 
-        // --- AUTH LOGIC ---
-        async function handleLogin() {
-            const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;
-            if(!p || !pw) return alert("Enter details");
-            const s = await db.collection("users").where("phone","==",p).where("pass","==",pw).get();
-            if(s.empty) return alert("Invalid phone or password");
-            currentUser = s.docs[0].data(); 
-            localStorage.setItem('user_session', JSON.stringify(currentUser)); 
-            location.reload();
-        }
+        async function toggleStock(id, s) { await db.collection("products").doc(id).update({ inStock: !s }); }
+        async function deleteItem(id) { if(confirm("Delete?")) await db.collection("products").doc(id).delete(); }
 
-        async function handleRegister() {
-            const n = document.getElementById('reg-name').value, p = document.getElementById('reg-phone').value, pw = document.getElementById('reg-pass').value;
-            if(!n || !p || !pw) return alert("Fill all fields");
-            await db.collection("users").add({ name:n, phone:p, pass:pw }); 
-            alert("Account Created!"); location.reload();
-        }
-
-        // --- PRODUCT RENDERING (BY CATEGORY) ---
-        function renderItems(list) {
-            const grid = document.getElementById('items-grid');
-            grid.innerHTML = "";
-            const categories = ["Vegetables & Fruits", "Chicken, Meat & Fish", "Snacks & Drinks", "Rice & Groceries", "Others"];
-            
-            categories.forEach(cat => {
-                const catItems = list.filter(p => p.category === cat && p.inStock !== false);
-                if(catItems.length > 0) {
-                    grid.innerHTML += `<div class="col-span-4 mt-6 mb-2 px-1"><h2 class="text-[11px] font-black uppercase text-slate-800 tracking-wider">${cat}</h2></div>`;
-                    catItems.forEach(p => {
-                        const qty = cart[p.id]?.qty || 0;
-                        grid.innerHTML += `
-                        <div class="category-card flex flex-col items-center" onclick="updateQty('${p.id}', 1)">
-                            <div class="relative w-full aspect-square bg-white rounded-2xl overflow-hidden mb-2 p-3 flex items-center justify-center border border-slate-100 shadow-sm">
-                                <img src="${p.image || ''}" class="max-w-full max-h-full object-contain">
-                                ${qty > 0 ? `<div class="absolute -top-1 -right-1 bg-green-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold shadow-md">${qty}</div>` : ''}
-                            </div>
-                            <h3 class="text-[9px] font-bold text-center leading-tight line-clamp-2 h-6 text-slate-600">${p.name}</h3>
-                            <p class="text-[10px] font-black text-slate-900 mt-1">₹${p.price}</p>
-                        </div>`;
-                    });
-                }
+        db.collection("orders").onSnapshot(snap => {
+            let rev = 0, fees = 0;
+            snap.forEach(doc => { 
+                const d = doc.data(); 
+                if(d.status === "DELIVERED") { rev += Number(d.total); fees += 15; }
             });
+            document.getElementById('total-revenue').innerText = `₹${rev}`;
+            document.getElementById('total-profit').innerText = `₹${((rev-fees)*0.1).toFixed(0)}`;
+            document.getElementById('total-fees').innerText = `₹${fees}`;
+        });
+
+        function showSection(s) { 
+            document.getElementById('sec-stats').classList.toggle('hidden', s !== 'stats');
+            document.getElementById('sec-inventory').classList.toggle('hidden', s !== 'inventory');
         }
-
-        function updateQty(id, change) {
-            const p = allProducts.find(x => x.id === id);
-            if (!cart[id]) cart[id] = { id: p.id, name: p.name, price: Number(p.price), qty: 0 };
-            cart[id].qty += change; if (cart[id].qty <= 0) delete cart[id];
-            updateCartUI(); renderItems(allProducts);
-            if(!document.getElementById('checkout-view').classList.contains('hidden')) openCheckout();
-        }
-
-        function updateCartUI() {
-            let sub = 0, count = 0; Object.values(cart).forEach(i => { sub += i.price * i.qty; count += i.qty; });
-            document.getElementById('cart-bar').classList.toggle('hidden', count === 0);
-            document.getElementById('cart-total-bar').innerText = `₹${sub + 15}`;
-            document.getElementById('cart-count').innerText = `${count} ITEMS`;
-        }
-
-        // --- CHECKOUT & ORDERING ---
-        function openCheckout() {
-            const listDiv = document.getElementById('checkout-items-list'); listDiv.innerHTML = "";
-            let sub = 0;
-            if(!document.getElementById('order-cust-name').value) document.getElementById('order-cust-name').value = currentUser.name;
-            if(!document.getElementById('order-cust-phone').value) document.getElementById('order-cust-phone').value = currentUser.phone;
-            
-            Object.values(cart).forEach(i => { 
-                sub += (i.price * i.qty); 
-                listDiv.innerHTML += `<div class="flex justify-between items-center"><p class="font-bold text-xs text-slate-700">${i.name} x ${i.qty}</p><p class="text-xs font-black">₹${i.price * i.qty}</p></div>`; 
-            });
-            
-            document.getElementById('final-bill').innerHTML = `<div class="flex justify-between text-slate-400 text-[10px] font-bold"><span>Delivery Fee</span><span>₹15</span></div><div class="flex justify-between text-lg font-black pt-2 border-t mt-2"><span>To Pay</span><span>₹${sub+15}</span></div>`;
-            document.getElementById('checkout-view').classList.remove('hidden');
-        }
-
-        async function placeOrder() {
-            const b = document.getElementById('order-building').value, g = document.getElementById('order-address').value;
-            const cN = document.getElementById('order-cust-name').value, cP = document.getElementById('order-cust-phone').value;
-            if(!b || !g || !cN || !cP) return alert("Please complete address & GPS");
-            
-            let sub = 0; Object.values(cart).forEach(i => sub += i.price * i.qty);
-            
-            try {
-                await db.collection("orders").add({
-                    orderId: "VE" + Math.floor(1000 + Math.random()*8999),
-                    customer: { name: cN, phone: cP, user_phone: currentUser.phone },
-                    address: `${b}, GPS: ${g}`,
-                    items: cart,
-                    total: Number(sub + 15), // Numeric for Admin Stats
-                    payment: selectedPayment,
-                    status: "PENDING",
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-                alert("Order Placed Successfully!"); cart = {}; updateCartUI(); closeCheckout(); openProfile(); 
-            } catch(e) { alert("Error placing order."); }
-        }
-
-        // --- ORDER HISTORY & LIVE TRACKING ---
-        function loadHistory() {
-            db.collection("orders").where("customer.user_phone", "==", currentUser.phone).onSnapshot(snap => {
-                const list = document.getElementById('history-list'); list.innerHTML = "";
-                const docs = snap.docs.sort((a,b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0));
-                
-                docs.forEach(doc => {
-                    const d = doc.data(); 
-                    const isAccepted = d.status === "ACCEPTED" && d.riderLocation;
-                    const mapUrl = isAccepted ? `https://maps.google.com/maps?q=${d.riderLocation.lat},${d.riderLocation.lng}&t=&z=15&ie=UTF8&iwloc=&output=embed` : "";
-
-                    list.innerHTML += `
-                    <div class="bg-white p-5 rounded-[2rem] border border-slate-100 mb-4 shadow-sm">
-                        <div class="flex justify-between items-start mb-3">
-                            <div><p class="text-[9px] font-black text-slate-400">#${d.orderId}</p><p class="text-[10px] font-bold text-slate-500">${new Date(d.timestamp?.seconds*1000).toLocaleDateString()}</p></div>
-                            <span class="px-3 py-1 ${d.status === 'CANCELLED' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'} rounded-full text-[8px] font-black uppercase">${d.status}</span>
-                        </div>
-                        
-                        <p class="text-xs font-bold text-slate-700 mb-4">${Object.values(d.items).map(i => i.name).join(', ')}</p>
-                        
-                        ${isAccepted ? `
-                            <div class="mt-2 mb-4 space-y-3">
-                                <div class="flex items-center gap-2 px-1">
-                                    <span class="relative flex h-2 w-2">
-                                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                                        <span class="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-                       
+    </script>
+</body>
+</html>
