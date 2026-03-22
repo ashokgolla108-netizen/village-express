@@ -6,34 +6,37 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-storage-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body class="bg-slate-50 p-6">
-    <div class="max-w-md mx-auto space-y-8">
-        <h1 class="text-2xl font-black italic">ADMIN PANEL</h1>
+<body class="bg-slate-50 pb-20">
+    <div class="max-w-md mx-auto p-6 space-y-6">
+        <h1 class="text-3xl font-black italic text-slate-800">Admin Control</h1>
 
         <div class="bg-white p-6 rounded-3xl border shadow-sm">
-            <h2 class="font-black text-xs text-slate-400 uppercase mb-4">1. Add Category</h2>
-            <input type="text" id="cat-name" placeholder="Category Name (e.g. Food)" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none">
-            <input type="text" id="cat-img" placeholder="Image URL" class="w-full p-4 bg-slate-100 rounded-xl mb-4 outline-none">
-            <button onclick="addCat()" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold">Save Category</button>
+            <h2 class="font-black text-xs text-slate-400 uppercase mb-4">Add Category</h2>
+            <input type="text" id="cat-name" placeholder="Category Name" class="w-full p-4 bg-slate-100 rounded-xl mb-3 outline-none">
+            <input type="file" id="cat-file" accept="image/*" class="hidden" onchange="document.getElementById('cat-st').innerText='Photo Selected'">
+            <button onclick="document.getElementById('cat-file').click()" class="w-full p-4 bg-blue-50 text-blue-600 font-bold rounded-xl mb-4 border border-blue-100"><i class="fa-solid fa-camera mr-2"></i> Select Photo</button>
+            <p id="cat-st" class="text-[10px] text-center mb-4 text-slate-400 font-bold"></p>
+            <button onclick="saveCat(this)" class="w-full bg-slate-900 text-white p-4 rounded-xl font-bold">Save Category</button>
         </div>
 
         <div class="bg-white p-6 rounded-3xl border shadow-sm">
-            <h2 class="font-black text-xs text-slate-400 uppercase mb-4">2. Add Sub-Category (Restaurant)</h2>
-            <select id="sub-parent" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none"></select>
-            <input type="text" id="sub-name" placeholder="Sub-Name (e.g. KFC)" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none">
-            <input type="text" id="sub-img" placeholder="Image URL" class="w-full p-4 bg-slate-100 rounded-xl mb-4 outline-none">
-            <button onclick="addSub()" class="w-full bg-blue-600 text-white p-4 rounded-xl font-bold">Save Sub-Category</button>
-        </div>
-
-        <div class="bg-white p-6 rounded-3xl border shadow-sm">
-            <h2 class="font-black text-xs text-slate-400 uppercase mb-4">3. Add Product</h2>
+            <h2 class="font-black text-xs text-slate-400 uppercase mb-4">Add New Product</h2>
             <select id="prod-cat" onchange="loadSubs(this.value)" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none"></select>
-            <select id="prod-sub" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none"><option value="">Select Sub (Optional)</option></select>
-            <input type="text" id="prod-name" placeholder="Product Name" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none">
-            <input type="number" id="prod-price" placeholder="Price" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none">
-            <input type="text" id="prod-img" placeholder="Image URL" class="w-full p-4 bg-slate-100 rounded-xl mb-4 outline-none">
-            <button onclick="addProd()" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold">Save Product</button>
+            <select id="prod-sub" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none"><option value="">Optional Sub-Category</option></select>
+            <input type="text" id="prod-name" placeholder="Item Name" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none">
+            <input type="number" id="prod-price" placeholder="Price (₹)" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none">
+            <input type="file" id="prod-file" accept="image/*" class="hidden" onchange="document.getElementById('prod-st').innerText='Photo Selected'">
+            <button onclick="document.getElementById('prod-file').click()" class="w-full p-4 bg-blue-50 text-blue-600 font-bold rounded-xl mb-4"><i class="fa-solid fa-image mr-2"></i> Select Item Photo</button>
+            <p id="prod-st" class="text-[10px] text-center mb-4 text-slate-400 font-bold"></p>
+            <button onclick="saveProd(this)" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold">Add Product</button>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl border shadow-sm">
+            <h2 class="font-black text-xs text-slate-400 uppercase mb-4">Manage Stock Availability</h2>
+            <div id="stock-list" class="space-y-3"></div>
         </div>
     </div>
 
@@ -41,10 +44,11 @@
         const firebaseConfig = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        const storage = firebase.storage();
 
-        // Populate Category Dropdowns
+        // Populate Dropdowns
         db.collection("categories").onSnapshot(snap => {
-            const selects = [document.getElementById('sub-parent'), document.getElementById('prod-cat')];
+            const selects = [document.getElementById('prod-cat')];
             selects.forEach(s => {
                 s.innerHTML = `<option value="">Select Category</option>`;
                 snap.forEach(doc => s.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`);
@@ -52,25 +56,57 @@
         });
 
         async function loadSubs(catId) {
-            const select = document.getElementById('prod-sub');
-            select.innerHTML = `<option value="">Select Sub (Optional)</option>`;
+            const s = document.getElementById('prod-sub'); s.innerHTML = `<option value="">Optional Sub-Category</option>`;
             const snap = await db.collection("subcategories").where("parentId", "==", catId).get();
-            snap.forEach(doc => select.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`);
+            snap.forEach(doc => s.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`);
         }
 
-        async function addCat() { await db.collection("categories").add({ name: document.getElementById('cat-name').value, image: document.getElementById('cat-img').value }); alert("Done"); }
-        async function addSub() { await db.collection("subcategories").add({ parentId: document.getElementById('sub-parent').value, name: document.getElementById('sub-name').value, image: document.getElementById('sub-img').value }); alert("Done"); }
-        async function addProd() {
-            await db.collection("products").add({
-                categoryId: document.getElementById('prod-cat').value,
-                subId: document.getElementById('prod-sub').value,
-                name: document.getElementById('prod-name').value,
-                price: parseFloat(document.getElementById('prod-price').value),
-                image: document.getElementById('prod-img').value,
-                inStock: true
-            });
-            alert("Product Added");
+        async function saveCat(btn) {
+            const file = document.getElementById('cat-file').files[0];
+            const name = document.getElementById('cat-name').value;
+            if(!file || !name) return alert("Photo & Name required");
+            btn.disabled = true; btn.innerText = "Uploading...";
+            const url = await upload(file, 'cats');
+            await db.collection("categories").add({ name, image: url });
+            alert("Category Added!"); location.reload();
         }
+
+        async function saveProd(btn) {
+            const file = document.getElementById('prod-file').files[0];
+            const name = document.getElementById('prod-name').value;
+            const price = document.getElementById('prod-price').value;
+            const catId = document.getElementById('prod-cat').value;
+            const subId = document.getElementById('prod-sub').value;
+            if(!file || !name || !price || !catId) return alert("Check all fields!");
+            btn.disabled = true; btn.innerText = "Processing...";
+            const url = await upload(file, 'products');
+            await db.collection("products").add({ name, price: parseFloat(price), image: url, categoryId: catId, subId, inStock: true });
+            alert("Product Added!"); location.reload();
+        }
+
+        async function upload(file, path) {
+            const ref = storage.ref(`${path}/${Date.now()}_${file.name}`);
+            await ref.put(file);
+            return await ref.getDownloadURL();
+        }
+
+        // Live Stock Manager
+        db.collection("products").onSnapshot(snap => {
+            const list = document.getElementById('stock-list'); list.innerHTML = "";
+            snap.forEach(doc => {
+                const p = doc.data();
+                list.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                    <span class="text-xs font-black truncate w-2/3">${p.name}</span>
+                    <button onclick="toggleStock('${doc.id}', ${p.inStock})" class="px-3 py-1 rounded-full text-[9px] font-black ${p.inStock ? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'} uppercase">
+                        ${p.inStock ? 'In Stock':'Out'}
+                    </button>
+                    <button onclick="deleteDoc('products', '${doc.id}')" class="text-red-300 ml-2"><i class="fa-solid fa-trash-can"></i></button>
+                </div>`;
+            });
+        });
+
+        async function toggleStock(id, status) { await db.collection("products").doc(id).update({ inStock: !status }); }
+        async function deleteDoc(col, id) { if(confirm("Delete this?")) await db.collection(col).doc(id).delete(); }
     </script>
 </body>
 </html>
