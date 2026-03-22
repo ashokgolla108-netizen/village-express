@@ -2,91 +2,195 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Village Express - Admin</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Village Express - Admin Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-storage-compat.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="bg-slate-50 p-6 pb-20">
+<body class="bg-slate-50 p-4 pb-20">
     <div class="max-w-md mx-auto space-y-6">
-        <h1 class="text-2xl font-black">Store Control</h1>
+        <h1 class="text-2xl font-black text-slate-800 italic">STORE<span class="text-green-600">CONTROL</span></h1>
 
         <div class="bg-white p-6 rounded-3xl border shadow-sm">
-            <h2 class="font-black text-xs text-slate-400 uppercase mb-4">Add New Item</h2>
-            <select id="prod-cat" onchange="loadSubs(this.value)" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none"></select>
-            <select id="prod-sub" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none"><option value="">Sub-Category (Optional)</option></select>
-            <input type="text" id="prod-name" placeholder="Item Name" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none">
-            <input type="number" id="prod-price" placeholder="Price (₹)" class="w-full p-4 bg-slate-100 rounded-xl mb-2 outline-none">
-            
-            <input type="file" id="prod-file" accept="image/*" class="hidden" onchange="document.getElementById('st').innerText='Photo Ready'">
-            <button onclick="document.getElementById('prod-file').click()" class="w-full p-4 bg-blue-50 text-blue-600 font-bold rounded-xl mb-2 border border-blue-100"><i class="fa-solid fa-camera mr-2"></i> Select Product Photo</button>
-            <p id="st" class="text-[10px] text-center mb-4 font-bold text-slate-400"></p>
-            
-            <button onclick="saveProd(this)" class="w-full bg-green-600 text-white p-4 rounded-xl font-bold">Upload & Add Product</button>
+            <h2 class="font-black text-xs text-slate-400 uppercase mb-4 tracking-widest">Add New Category</h2>
+            <div class="flex gap-2">
+                <input type="text" id="new-cat-name" placeholder="Category Name (e.g. Fruits)" class="flex-1 p-4 bg-slate-100 rounded-xl outline-none text-sm">
+                <button onclick="addCategory(this)" class="bg-slate-900 text-white px-6 rounded-xl font-bold"><i class="fa-solid fa-plus"></i></button>
+            </div>
+            <div id="cat-list-display" class="mt-4 flex flex-wrap gap-2"></div>
         </div>
 
         <div class="bg-white p-6 rounded-3xl border shadow-sm">
-            <h2 class="font-black text-xs text-slate-400 uppercase mb-4">Manage Inventory</h2>
-            <div id="inventory-list" class="space-y-3"></div>
+            <h2 class="font-black text-xs text-slate-400 uppercase mb-4 tracking-widest">Add New Item</h2>
+            <div class="space-y-3">
+                <select id="prod-cat" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm border-none ring-0">
+                    <option value="">Select Category</option>
+                </select>
+                
+                <input type="text" id="prod-name" placeholder="Item Name" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">
+                <input type="number" id="prod-price" placeholder="Price (₹)" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">
+                
+                <input type="file" id="prod-file" accept="image/*" class="hidden" onchange="updateFileLabel(this)">
+                <button onclick="document.getElementById('prod-file').click()" class="w-full p-4 bg-blue-50 text-blue-600 font-bold rounded-xl border border-blue-100 text-sm">
+                    <i class="fa-solid fa-image mr-2"></i> <span id="file-label">Select Product Photo</span>
+                </button>
+                
+                <button id="upload-btn" onclick="saveProd()" class="w-full bg-green-600 text-white p-5 rounded-2xl font-black shadow-lg shadow-green-200 active:scale-95 transition-transform">
+                    UPLOAD & ADD PRODUCT
+                </button>
+                <p id="upload-status" class="text-[10px] text-center font-bold text-slate-400 uppercase mt-2"></p>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 rounded-3xl border shadow-sm">
+            <h2 class="font-black text-xs text-slate-400 uppercase mb-4 tracking-widest">Manage Inventory</h2>
+            <div id="inventory-list" class="space-y-2"></div>
         </div>
     </div>
 
     <script>
-        const firebaseConfig = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };
+        // Use your verified config
+        const firebaseConfig = { 
+            apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", 
+            projectId: "village-quick-commerce-e27f6",
+            storageBucket: "village-quick-commerce-e27f6.appspot.com" // Ensure this is correct
+        };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const storage = firebase.storage();
 
+        // 1. Sync Categories for dropdown and list
         db.collection("categories").onSnapshot(snap => {
-            const s = document.getElementById('prod-cat');
-            s.innerHTML = `<option value="">Select Category</option>`;
-            snap.forEach(doc => s.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`);
+            const select = document.getElementById('prod-cat');
+            const display = document.getElementById('cat-list-display');
+            
+            let options = `<option value="">Select Category</option>`;
+            let chips = "";
+            
+            snap.forEach(doc => {
+                const cat = doc.data();
+                options += `<option value="${doc.id}">${cat.name}</option>`;
+                chips += `
+                    <div class="bg-slate-100 px-3 py-1 rounded-full flex items-center gap-2">
+                        <span class="text-[10px] font-bold text-slate-600">${cat.name}</span>
+                        <button onclick="deleteDoc('categories', '${doc.id}')" class="text-red-400 text-[10px]"><i class="fa-solid fa-xmark"></i></button>
+                    </div>`;
+            });
+            select.innerHTML = options;
+            display.innerHTML = chips;
         });
 
-        async function loadSubs(id) {
-            const s = document.getElementById('prod-sub'); s.innerHTML = `<option value="">Sub (Optional)</option>`;
-            const snap = await db.collection("subcategories").where("parentId", "==", id).get();
-            snap.forEach(doc => s.innerHTML += `<option value="${doc.id}">${doc.data().name}</option>`);
+        // 2. Add Category Logic
+        async function addCategory(btn) {
+            const name = document.getElementById('new-cat-name').value;
+            if(!name) return;
+            btn.disabled = true;
+            await db.collection("categories").add({ name: name, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            document.getElementById('new-cat-name').value = "";
+            btn.disabled = false;
         }
 
-        async function saveProd(btn) {
+        function updateFileLabel(input) {
+            if(input.files[0]) document.getElementById('file-label').innerText = input.files[0].name;
+        }
+
+        // 3. Robust Save Product with Upload Progress
+        async function saveProd() {
             const file = document.getElementById('prod-file').files[0];
             const name = document.getElementById('prod-name').value;
             const price = document.getElementById('prod-price').value;
             const catId = document.getElementById('prod-cat').value;
-            const subId = document.getElementById('prod-sub').value;
-            
-            if(!file || !name || !price || !catId) return alert("Fill all fields");
-            
-            btn.disabled = true; btn.innerText = "Uploading...";
-            const ref = storage.ref(`products/${Date.now()}_${file.name}`);
-            await ref.put(file);
-            const url = await ref.getDownloadURL();
-            
-            await db.collection("products").add({ name, price: parseFloat(price), image: url, categoryId: catId, subId, inStock: true });
-            alert("Added!"); location.reload();
+            const btn = document.getElementById('upload-btn');
+            const status = document.getElementById('upload-status');
+
+            if(!file || !name || !price || !catId) {
+                alert("Please fill all fields and select a photo");
+                return;
+            }
+
+            btn.disabled = true;
+            status.innerText = "Starting Upload...";
+
+            try {
+                // Upload Image
+                const fileName = `products/${Date.now()}_${file.name}`;
+                const storageRef = storage.ref(fileName);
+                const uploadTask = storageRef.put(file);
+
+                uploadTask.on('state_changed', 
+                    (snapshot) => {
+                        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                        status.innerText = "Uploading: " + Math.round(progress) + "%";
+                    }, 
+                    (error) => {
+                        console.error(error);
+                        alert("Upload failed! Check Firebase Storage Rules.");
+                        btn.disabled = false;
+                    }, 
+                    async () => {
+                        const downloadURL = await uploadTask.snapshot.ref.getDownloadURL();
+                        
+                        // Save to Firestore
+                        await db.collection("products").add({
+                            name: name,
+                            price: parseFloat(price),
+                            image: downloadURL,
+                            categoryId: catId,
+                            inStock: true,
+                            timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                        });
+
+                        status.innerText = "Success! Added to Store.";
+                        setTimeout(() => location.reload(), 1500);
+                    }
+                );
+            } catch (err) {
+                console.error(err);
+                alert("An error occurred. check console.");
+                btn.disabled = false;
+            }
         }
 
-        db.collection("products").onSnapshot(snap => {
-            const list = document.getElementById('inventory-list'); list.innerHTML = "";
+        // 4. Inventory List with Toggle and Delete
+        db.collection("products").orderBy("timestamp", "desc").onSnapshot(snap => {
+            const list = document.getElementById('inventory-list');
+            list.innerHTML = "";
             snap.forEach(doc => {
                 const p = doc.data();
-                list.innerHTML += `<div class="flex justify-between items-center p-3 bg-slate-50 rounded-2xl border">
-                    <span class="text-xs font-bold truncate w-1/2">${p.name}</span>
+                list.innerHTML += `
+                <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div class="flex items-center gap-3">
+                        <img src="${p.image}" class="w-10 h-10 rounded-lg object-cover bg-white">
+                        <div>
+                            <p class="text-xs font-black text-slate-800">${p.name}</p>
+                            <p class="text-[10px] font-bold text-green-600">₹${p.price}</p>
+                        </div>
+                    </div>
                     <div class="flex items-center gap-2">
-                        <button onclick="toggleStock('${doc.id}', ${p.inStock})" class="px-3 py-1 rounded-full text-[9px] font-black ${p.inStock ? 'bg-green-100 text-green-700':'bg-red-100 text-red-700'} uppercase">
-                            ${p.inStock ? 'In Stock':'Out'}
+                        <button onclick="toggleStock('${doc.id}', ${p.inStock})" 
+                            class="px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter ${p.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            ${p.inStock ? 'In Stock' : 'Out'}
                         </button>
-                        <button onclick="deleteDoc('products', '${doc.id}')" class="text-red-300 ml-2"><i class="fa-solid fa-trash-can"></i></button>
+                        <button onclick="deleteDoc('products', '${doc.id}')" class="text-red-200 hover:text-red-500 p-2">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
                     </div>
                 </div>`;
             });
         });
 
-        async function toggleStock(id, s) { await db.collection("products").doc(id).update({ inStock: !s }); }
-        async function deleteDoc(col, id) { if(confirm("Delete?")) await db.collection(col).doc(id).delete(); }
+        async function toggleStock(id, current) {
+            await db.collection("products").doc(id).update({ inStock: !current });
+        }
+
+        async function deleteDoc(col, id) {
+            if(confirm("Are you sure you want to delete this?")) {
+                await db.collection(col).doc(id).delete();
+            }
+        }
     </script>
 </body>
 </html>
