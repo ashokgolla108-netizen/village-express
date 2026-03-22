@@ -11,99 +11,70 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F7F9FB; -webkit-tap-highlight-color: transparent; }
-        .product-card { background: white; border-radius: 24px; padding: 12px; border: 1px solid #f1f5f9; transition: transform 0.1s; }
-        .product-card:active { transform: scale(0.98); }
-        .qty-btn { width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border-radius: 10px; }
+        .product-card { background: white; border-radius: 24px; padding: 12px; border: 1px solid #f1f5f9; }
         .hidden { display: none !important; }
-        input::placeholder { color: #94a3b8; }
+        .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
     </style>
 </head>
 <body class="pb-32">
 
-    <div id="auth-section" class="fixed inset-0 bg-white z-[3000] p-8 flex flex-col justify-center overflow-y-auto">
+    <div id="auth-section" class="fixed inset-0 bg-white z-[3000] p-8 flex flex-col justify-center">
         <div class="text-center space-y-6 max-w-sm mx-auto w-full">
-            <h1 class="text-4xl font-black italic text-green-700 uppercase tracking-tighter">Village<span class="text-orange-500">Express</span></h1>
-            
-            <div class="space-y-4">
-                <div id="signup-fields" class="hidden">
-                    <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold mb-4 border-2 border-transparent focus:border-green-500">
-                </div>
-                <input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold border-2 border-transparent focus:border-green-500">
-                <input type="password" id="auth-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold border-2 border-transparent focus:border-green-500">
-                <button id="auth-btn" onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl uppercase tracking-widest">Login</button>
-            </div>
-
-            <div class="flex flex-col gap-4">
-                <button type="button" onclick="toggleAuthMode()" id="toggle-link" class="text-sm font-bold text-slate-500">
-                    New here? <span class="text-green-600 underline">Create Account</span>
-                </button>
-                <button type="button" onclick="forgotPassword()" class="text-slate-400 text-xs font-black uppercase tracking-widest">
-                    Forgot Password?
-                </button>
-            </div>
+            <h1 class="text-4xl font-black italic text-green-700 uppercase">Village<span class="text-orange-500">Express</span></h1>
+            <div id="signup-fields" class="hidden"><input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold mb-4"></div>
+            <input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">
+            <input type="password" id="auth-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">
+            <button onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl uppercase">Login</button>
+            <button type="button" onclick="toggleAuthMode()" id="toggle-link" class="text-sm font-bold text-slate-500">New here? <span class="text-green-600">Create Account</span></button>
         </div>
     </div>
 
     <div id="main-app" class="hidden">
         <header class="p-6 sticky top-0 bg-[#F7F9FB]/90 backdrop-blur-md z-50 flex justify-between items-center">
-            <div>
-                <p class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Delivery to</p>
-                <h2 id="display-name" class="font-black text-sm text-slate-900">Hi, User</h2>
-            </div>
-            <button onclick="handleLogout()" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center border border-red-100"><i class="fa-solid fa-power-off"></i></button>
+            <div><p class="text-[9px] font-black text-slate-400 uppercase">Delivery to</p><h2 id="display-name" class="font-black text-sm text-slate-900">User</h2></div>
+            <button onclick="handleLogout()" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center"><i class="fa-solid fa-power-off"></i></button>
         </header>
 
         <main id="items-grid" class="px-4 grid grid-cols-2 gap-4 mt-2"></main>
 
         <nav class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-around items-center z-[150] shadow-2xl">
-            <button onclick="renderCategories()" class="flex flex-col items-center text-green-600">
-                <i class="fa-solid fa-house text-xl"></i>
-                <span class="text-[10px] font-black mt-1 uppercase">Home</span>
-            </button>
-            <button onclick="showPage('orders')" class="flex flex-col items-center text-slate-300">
-                <i class="fa-solid fa-bag-shopping text-xl"></i>
-                <span class="text-[10px] font-black mt-1 uppercase">Orders</span>
-            </button>
+            <button onclick="renderCategories()" class="flex flex-col items-center text-green-600"><i class="fa-solid fa-house text-xl"></i><span class="text-[10px] font-black mt-1 uppercase">Home</span></button>
+            <button onclick="showPage('orders')" class="flex flex-col items-center text-slate-300"><i class="fa-solid fa-bag-shopping text-xl"></i><span class="text-[10px] font-black mt-1 uppercase">Orders</span></button>
         </nav>
 
         <div id="cart-bar" class="fixed bottom-24 left-4 right-4 hidden z-[100]">
             <button onclick="openCheckout()" class="w-full bg-slate-900 text-white flex justify-between items-center p-5 rounded-[2rem] shadow-2xl">
-                <div class="text-left"><p id="cart-count" class="text-[9px] font-black opacity-50 uppercase">0 Items</p><p id="cart-total-bar" class="text-xl font-black">₹0</p></div>
+                <div class="text-left"><p id="cart-count" class="text-[9px] font-black opacity-50">0 Items</p><p id="cart-total-bar" class="text-xl font-black">₹0</p></div>
                 <div class="bg-green-600 px-6 py-2 rounded-2xl text-[10px] font-black uppercase">Review Order</div>
             </button>
         </div>
 
         <div id="orders-page" class="fixed inset-0 bg-slate-50 z-[200] hidden overflow-y-auto p-6 pb-32">
-            <div class="flex items-center gap-4 mb-6"><button onclick="showPage('home')" class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></button><h2 class="font-black text-2xl">History</h2></div>
+            <div class="flex items-center gap-4 mb-6">
+                <button onclick="showPage('home')" class="w-10 h-10 bg-white rounded-xl shadow-sm flex items-center justify-center"><i class="fa-solid fa-arrow-left"></i></button>
+                <h2 class="font-black text-2xl">My Orders</h2>
+            </div>
             <div id="orders-history-list" class="space-y-4"></div>
         </div>
     </div>
 
     <div id="checkout-view" class="fixed inset-0 bg-white z-[4000] hidden overflow-y-auto p-6">
-        <div class="flex items-center gap-4 mb-8">
-            <button onclick="closeCheckout()" class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
-            <h2 class="font-black text-xl">Finalize Order</h2>
-        </div>
-        
+        <div class="flex items-center gap-4 mb-8"><button onclick="closeCheckout()" class="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button><h2 class="font-black text-xl">Checkout</h2></div>
         <div class="space-y-6">
-            <div class="bg-slate-50 p-6 rounded-[2.5rem] space-y-4 border border-slate-100">
-                <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">Delivery Details</p>
-                <input type="text" id="order-name" placeholder="Full Name" class="w-full p-4 bg-white rounded-2xl text-sm font-bold shadow-sm outline-none border-none">
-                <input type="tel" id="order-phone" placeholder="Mobile Number" class="w-full p-4 bg-white rounded-2xl text-sm font-bold shadow-sm outline-none border-none">
-                <input type="text" id="order-addr" placeholder="House No / Landmark" class="w-full p-4 bg-white rounded-2xl text-sm font-bold shadow-sm outline-none border-none">
-                <button onclick="getGPS(this)" id="gps-btn" class="w-full p-4 bg-blue-50 text-blue-600 font-black text-[10px] rounded-2xl border border-blue-100 uppercase">📍 Confirm GPS Location</button>
+            <div class="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 space-y-4">
+                <input type="text" id="order-name" placeholder="Full Name" class="w-full p-4 bg-white rounded-2xl text-sm font-bold outline-none border-none shadow-sm">
+                <input type="tel" id="order-phone" placeholder="Mobile Number" class="w-full p-4 bg-white rounded-2xl text-sm font-bold outline-none border-none shadow-sm">
+                <input type="text" id="order-addr" placeholder="House/Street/Landmark" class="w-full p-4 bg-white rounded-2xl text-sm font-bold outline-none border-none shadow-sm">
+                <button onclick="getGPS(this)" id="gps-btn" class="w-full p-4 bg-blue-50 text-blue-600 font-black text-[10px] rounded-2xl border border-blue-100">📍 Confirm GPS Location</button>
             </div>
-
             <div id="checkout-list" class="space-y-3"></div>
-
             <div class="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl">
-                <p class="text-[10px] font-black opacity-40 uppercase tracking-widest mb-4">Payment Method</p>
                 <div class="grid grid-cols-2 gap-3 mb-8">
                     <button onclick="setPayment('CASH')" id="pay-cash" class="py-4 rounded-2xl border border-white/10 font-black text-xs">CASH</button>
-                    <button onclick="setPayment('UPI')" id="pay-upi" class="py-4 rounded-2xl border border-white/10 font-black text-xs text-blue-400">UPI</button>
+                    <button onclick="setPayment('UPI')" id="pay-upi" class="py-4 rounded-2xl border border-white/10 font-black text-xs">UPI</button>
                 </div>
-                <div id="bill-details" class="space-y-2 border-t border-white/10 pt-6"></div>
-                <button onclick="placeOrder()" class="w-full bg-green-500 text-white py-6 rounded-3xl font-black text-sm shadow-xl mt-8 uppercase tracking-widest">Place Order</button>
+                <div id="bill-details" class="space-y-2 border-t border-white/10 pt-6 mb-6"></div>
+                <button onclick="placeOrder()" class="w-full bg-green-500 text-white py-6 rounded-3xl font-black text-sm shadow-xl uppercase tracking-widest active:scale-95 transition-all">Place Order</button>
             </div>
         </div>
     </div>
@@ -118,77 +89,41 @@
 
         window.onload = () => { if(currentUser) showMainApp(); };
 
-        // --- AUTH FUNCTIONS ---
-        function toggleAuthMode() {
-            isSignup = !isSignup;
-            document.getElementById('signup-fields').classList.toggle('hidden', !isSignup);
-            document.getElementById('auth-btn').innerText = isSignup ? "CREATE ACCOUNT" : "LOGIN";
-            document.getElementById('toggle-link').innerHTML = isSignup ? `Already have an account? <span class="text-green-600 font-bold">Login</span>` : `New here? <span class="text-green-600 font-bold">Create Account</span>`;
-        }
-
+        // --- AUTH ---
+        function toggleAuthMode() { isSignup = !isSignup; document.getElementById('signup-fields').classList.toggle('hidden', !isSignup); }
         async function handleAuth() {
             const phone = document.getElementById('auth-phone').value.trim();
             const pass = document.getElementById('auth-pass').value.trim();
-            if(!phone || !pass) return alert("Please fill details");
-
             if(isSignup) {
                 const name = document.getElementById('reg-name').value.trim();
-                if(!name) return alert("Enter Name");
-                const user = { name, phone, pass };
-                await db.collection("users").add(user);
-                loginUser(user);
+                const user = { name, phone, pass }; await db.collection("users").add(user); loginUser(user);
             } else {
                 const s = await db.collection("users").where("phone","==",phone).where("pass","==",pass).get();
-                if(!s.empty) loginUser(s.docs[0].data());
-                else alert("Invalid Credentials. Please Create Account if new.");
+                if(!s.empty) loginUser(s.docs[0].data()); else alert("Invalid Login");
             }
         }
-
         function loginUser(u) { localStorage.setItem('user_session', JSON.stringify(u)); location.reload(); }
-        function forgotPassword() { alert("Contact Admin at +91-8328016917 to reset password."); }
         function handleLogout() { localStorage.removeItem('user_session'); location.reload(); }
 
-        // --- MAIN APP LOGIC ---
-        function showMainApp() {
-            document.getElementById('auth-section').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
-            document.getElementById('display-name').innerText = "Hi, " + currentUser.name;
-            renderCategories();
-        }
-
+        // --- SHOP LOGIC ---
+        function showMainApp() { document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-app').classList.remove('hidden'); document.getElementById('display-name').innerText = "Hi, " + currentUser.name; renderCategories(); }
+        
         function renderCategories() {
-            const grid = document.getElementById('items-grid');
-            grid.innerHTML = `<p class="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest mt-4">Quick Shop</p>`;
+            const grid = document.getElementById('items-grid'); grid.innerHTML = `<p class="col-span-2 text-[10px] font-black text-slate-400 uppercase mt-4">Browse</p>`;
             db.collection("categories").onSnapshot(snap => {
-                snap.forEach(doc => {
-                    grid.innerHTML += `<div onclick="renderProducts('${doc.id}', '${doc.data().name}')" class="product-card flex flex-col items-center justify-center gap-2 py-6"><div class="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 text-2xl"><i class="fa-solid fa-layer-group"></i></div><p class="text-[10px] font-black text-center uppercase">${doc.data().name}</p></div>`;
-                });
+                snap.forEach(doc => { grid.innerHTML += `<div onclick="renderProducts('${doc.id}', '${doc.data().name}')" class="product-card flex flex-col items-center justify-center gap-2 py-6 shadow-sm"><div class="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300 text-2xl"><i class="fa-solid fa-layer-group"></i></div><p class="text-[10px] font-black text-center uppercase">${doc.data().name}</p></div>`; });
             });
         }
 
         function renderProducts(catId, name) {
-            const grid = document.getElementById('items-grid');
-            grid.innerHTML = `<div class="col-span-2 flex items-center gap-2 mb-4"><button onclick="renderCategories()" class="text-[10px] font-black text-green-600 uppercase">Back</button><span class="text-[10px] font-black text-slate-300 uppercase">/ ${name}</span></div>`;
+            const grid = document.getElementById('items-grid'); grid.innerHTML = `<div class="col-span-2 flex items-center gap-2 mb-4"><button onclick="renderCategories()" class="text-green-600 font-black text-[10px] uppercase">Back</button></div>`;
             db.collection("products").where("categoryId", "==", catId).onSnapshot(snap => {
                 snap.forEach(doc => {
-                    const p = { id: doc.id, ...doc.data() };
-                    if(!p.inStock) return;
+                    const p = { id: doc.id, ...doc.data() }; if(!p.inStock) return;
                     const qty = cart[p.id]?.qty || 0;
-                    grid.innerHTML += `
-                    <div class="product-card text-center flex flex-col justify-between">
-                        <div>
-                            <div class="w-full aspect-square flex items-center justify-center text-4xl text-slate-200 mb-2"><i class="fa-solid ${p.icon || 'fa-box'}"></i></div>
-                            <p class="text-[10px] font-bold text-slate-500 truncate mb-1">${p.name}</p>
-                            <p class="text-sm font-black text-slate-900 mb-4">₹${p.price}</p>
-                        </div>
-                        ${qty === 0 ? 
-                            `<button onclick="updateQty('${p.id}', 1)" class="w-full py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase">Add</button>` :
-                            `<div class="flex items-center justify-between bg-green-600 text-white rounded-xl p-1 shadow-lg">
-                                <button onclick="updateQty('${p.id}', -1)" class="qty-btn bg-white/20"><i class="fa-solid fa-minus text-[10px]"></i></button>
-                                <span class="text-xs font-black">${qty}</span>
-                                <button onclick="updateQty('${p.id}', 1)" class="qty-btn bg-white/20"><i class="fa-solid fa-plus text-[10px]"></i></button>
-                            </div>`
-                        }
+                    grid.innerHTML += `<div class="product-card text-center flex flex-col justify-between shadow-sm">
+                        <div><div class="w-full aspect-square flex items-center justify-center text-4xl text-slate-200 mb-2"><i class="fa-solid ${p.icon || 'fa-box'}"></i></div><p class="text-[10px] font-bold text-slate-500">${p.name}</p><p class="text-sm font-black text-slate-900 mb-4">₹${p.price}</p></div>
+                        ${qty === 0 ? `<button onclick="updateQty('${p.id}', 1)" class="w-full py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase">Add</button>` : `<div class="flex items-center justify-between bg-green-600 text-white rounded-xl p-1 shadow-lg"><button onclick="updateQty('${p.id}', -1)" class="w-8 h-8 flex items-center justify-center bg-white/20 rounded-lg">-</button><span class="font-black text-xs">${qty}</span><button onclick="updateQty('${p.id}', 1)" class="w-8 h-8 flex items-center justify-center bg-white/20 rounded-lg">+</button></div>`}
                     </div>`;
                 });
             });
@@ -197,10 +132,8 @@
         function updateQty(id, chg) {
             db.collection("products").doc(id).get().then(doc => {
                 if(!cart[id]) cart[id] = { ...doc.data(), id: doc.id, qty: 0 };
-                cart[id].qty += chg;
-                if(cart[id].qty <= 0) delete cart[id];
-                updateCartUI();
-                if(!document.getElementById('checkout-view').classList.contains('hidden')) openCheckout();
+                cart[id].qty += chg; if(cart[id].qty <= 0) delete cart[id];
+                updateCartUI(); if(!document.getElementById('checkout-view').classList.contains('hidden')) openCheckout();
             });
         }
 
@@ -222,35 +155,19 @@
             document.getElementById('order-name').value = currentUser.name;
             document.getElementById('order-phone').value = currentUser.phone;
             const list = document.getElementById('checkout-list'); list.innerHTML = "";
-            let sub = 0;
-            Object.values(cart).forEach(i => {
-                sub += i.price * i.qty;
-                list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-3xl border border-slate-100">
-                    <div><p class="text-xs font-black">${i.name}</p><p class="text-[10px] font-bold text-slate-400">₹${i.price} x ${i.qty}</p></div>
-                    <div class="flex items-center gap-4 bg-white px-2 py-1 rounded-xl border"><button onclick="updateQty('${i.id}', -1)" class="text-slate-400"><i class="fa-solid fa-minus text-[10px]"></i></button><span class="text-xs font-black">${i.qty}</span><button onclick="updateQty('${i.id}', 1)" class="text-green-600"><i class="fa-solid fa-plus text-[10px]"></i></button></div>
-                </div>`;
-            });
-            document.getElementById('bill-details').innerHTML = `<div class="flex justify-between font-black text-xl"><span>Grand Total</span><span>₹${sub+15}</span></div>`;
-            setPayment('CASH');
-            document.getElementById('checkout-view').classList.remove('hidden');
+            let sub = 0; Object.values(cart).forEach(i => { sub += i.price * i.qty; list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100"><p class="text-xs font-black">${i.name} x ${i.qty}</p><p class="text-xs font-black">₹${i.price * i.qty}</p></div>`; });
+            document.getElementById('bill-details').innerHTML = `<div class="flex justify-between text-white/50 text-[10px] font-bold uppercase"><span>Subtotal</span><span>₹${sub}</span></div><div class="flex justify-between text-white/50 text-[10px] font-bold uppercase border-b border-white/10 pb-2"><span>Delivery</span><span>₹15</span></div><div class="flex justify-between font-black text-2xl pt-2"><span>Total</span><span>₹${sub+15}</span></div>`;
+            setPayment('CASH'); document.getElementById('checkout-view').classList.remove('hidden');
         }
 
         async function placeOrder() {
-            if(!gps) return alert("Please Fix GPS Location");
+            if(!gps) return alert("Please Fix GPS Location!");
             let sub = 0; Object.values(cart).forEach(i => sub += (i.price * i.qty));
             const total = sub + 15;
-            
-            if(paymentMethod === 'UPI') {
-                window.location.href = `upi://pay?pa=8328016917-3@ybl&pn=VillageExpress&am=${total}&cu=INR`;
-            }
-
+            if(paymentMethod === 'UPI') { window.location.href = `upi://pay?pa=8328016917-3@ybl&pn=VillageExpress&am=${total}&cu=INR`; }
             await db.collection("orders").add({
                 orderId: "VE" + Math.floor(1000 + Math.random()*8999),
-                customer: { 
-                    name: document.getElementById('order-name').value, 
-                    phone: document.getElementById('order-phone').value, 
-                    user_id: currentUser.phone 
-                },
+                customer: { name: document.getElementById('order-name').value, phone: document.getElementById('order-phone').value, user_id: currentUser.phone },
                 address: document.getElementById('order-addr').value + " | GPS: " + gps,
                 items: cart, total: total, status: "PENDING", payment: paymentMethod,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
@@ -258,14 +175,40 @@
             alert("Order Success!"); location.reload();
         }
 
+        // --- ORDER HISTORY & LIVE MAP & CALL ---
         function loadOrderHistory() {
             const list = document.getElementById('orders-history-list');
             db.collection("orders").where("customer.user_id", "==", currentUser.phone).onSnapshot(snap => {
-                if(snap.empty) return list.innerHTML = `<p class="text-center py-10 text-slate-300 font-bold uppercase text-[10px]">No orders yet</p>`;
+                if(snap.empty) return list.innerHTML = `<p class="text-center py-10 text-slate-300 font-bold uppercase text-[10px]">No History Found</p>`;
                 let html = "";
                 snap.docs.sort((a,b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0)).forEach(doc => {
                     const d = doc.data();
-                    html += `<div class="bg-white p-6 rounded-[2rem] border shadow-sm mb-4"><div class="flex justify-between"><div><p class="text-[9px] font-black text-slate-300">#${d.orderId}</p><p class="text-sm font-black text-green-600">${d.status}</p></div><p class="text-xl font-black">₹${d.total}</p></div></div>`;
+                    const hasLoc = d.riderLocation;
+                    // Only show map if status is Accepted or Out for Delivery
+                    const isActive = d.status === "ACCEPTED" || d.status === "OUT FOR DELIVERY";
+
+                    html += `
+                    <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-4">
+                        <div class="flex justify-between items-start mb-4">
+                            <div><p class="text-[9px] font-black text-slate-300">#${d.orderId}</p><p class="text-sm font-black ${d.status === 'DELIVERED' ? 'text-slate-400' : 'text-green-600'}">${d.status}</p></div>
+                            <p class="text-xl font-black text-slate-900">₹${d.total}</p>
+                        </div>
+                        
+                        ${(hasLoc && isActive) ? `
+                        <div class="w-full h-44 rounded-3xl overflow-hidden border mb-4 shadow-inner">
+                            <iframe width="100%" height="100%" frameborder="0" src="https://maps.google.com/maps?q=${hasLoc.lat},${hasLoc.lng}&z=15&output=embed"></iframe>
+                        </div>
+                        ` : ''}
+
+                        <div class="flex justify-between items-center gap-2">
+                            <div class="flex-1"><p class="text-[10px] text-slate-400 font-bold truncate">${Object.values(d.items).map(i => i.name).join(', ')}</p></div>
+                            ${isActive && d.riderPhone ? `
+                                <a href="tel:${d.riderPhone}" class="flex items-center gap-2 bg-green-50 text-green-600 px-4 py-2 rounded-xl text-[10px] font-black border border-green-100 animate-pulse-slow">
+                                    <i class="fa-solid fa-phone"></i> CALL RIDER
+                                </a>
+                            ` : ''}
+                        </div>
+                    </div>`;
                 });
                 list.innerHTML = html;
             });
