@@ -1,100 +1,169 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Rider</title>
+<!DOCTYPE html>  <html lang="en">  
+<head>  
+    <meta charset="UTF-8">  
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">  
+    <title>Village Express - Rider</title>  
+    <script src="https://cdn.tailwindcss.com"></script>  
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>  
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>  
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">  
+    <style>  
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');  
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: white; -webkit-tap-highlight-color: transparent; }  
+        .order-card { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2.5rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }  
+        .hidden { display: none !important; }  
+    </style>  
+</head>  
+<body class="min-h-screen pb-24">  <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-8 flex flex-col justify-center items-center text-slate-900">  
+    <div class="w-full max-w-sm space-y-6 text-center">  
+        <h1 class="text-4xl font-black italic tracking-tighter">RIDER<span class="text-orange-500">PORTAL</span></h1>  
+        <input type="tel" id="login-phone" placeholder="Mobile" class="w-full p-5 bg-slate-100 rounded-2xl outline-none">  
+        <input type="password" id="login-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl outline-none">  
+        <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-2xl">START SHIFT</button>  
+    </div>  
+</div>  
 
-<script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+<div id="main-app" class="hidden">  
+    <header class="p-6 bg-slate-800/40 border-b border-white/5 sticky top-0 z-50 flex justify-between items-center backdrop-blur-md">  
+        <div><h2 id="rider-name" class="text-xl font-black italic text-white">---</h2><p class="text-[10px] font-bold text-green-400 uppercase mt-1">● Online</p></div>  
+        <button onclick="handleLogout()" class="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20"><i class="fa-solid fa-power-off"></i></button>  
+    </header>  
 
-</head>
+    <div class="flex p-4 gap-3">  
+        <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white shadow-lg shadow-orange-500/20">Active Jobs</button>  
+        <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400">History</button>  
+    </div>  
 
-<body>
+    <main id="order-list" class="p-4 space-y-6"></main>  
+</div>  
 
-<input id="phone" placeholder="phone">
-<input id="pass" placeholder="pass">
-<button onclick="login()">Login</button>
+<script>  
+    const config = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };  
+    firebase.initializeApp(config);  
+    const db = firebase.firestore();  
 
-<div id="orders"></div>
+    let currentRider = JSON.parse(localStorage.getItem('rider_session')) || null;  
+    let currentTab = 'active', locationWatcher = null;  
 
-<script>
+    window.onload = () => { if(!currentRider) { document.getElementById('auth-overlay').style.display = 'flex'; } else { initRider(); } };  
 
-firebase.initializeApp({
-apiKey:"YOUR_KEY",
-projectId:"village-quick-commerce-e27f6"
-});
+    async function handleLogin() {  
+        const p = document.getElementById('login-phone').value, pw = document.getElementById('login-pass').value;  
+        const s = await db.collection("riders").where("phone","==",p).where("pass","==",pw).get();  
+        if(s.empty) return alert("Incorrect login.");  
+        currentRider = { id: s.docs[0].id, ...s.docs[0].data() };  
+        localStorage.setItem('rider_session', JSON.stringify(currentRider));  
+        location.reload();  
+    }  
 
-const db = firebase.firestore();
-let rider = JSON.parse(localStorage.getItem("rider"));
+    function initRider() {  
+        document.getElementById('auth-overlay').style.display = 'none';  
+        document.getElementById('main-app').classList.remove('hidden');  
+        document.getElementById('rider-name').innerText = currentRider.name;  
+        loadOrders();  
+    }  
 
-if(rider) load();
+    function loadOrders() {  
+        db.collection("orders").onSnapshot(snap => {  
+            const list = document.getElementById('order-list'); list.innerHTML = "";  
+            const allOrders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));  
+              
+            if (currentTab === 'active') {  
+                const myActiveJob = allOrders.find(o => o.status === 'ACCEPTED' && o.riderId === currentRider.id);  
+                if (myActiveJob) {  
+                    renderOrderCard(myActiveJob, list);  
+                } else {  
+                    const pending = allOrders.filter(o => o.status === 'PENDING');  
+                    pending.length === 0 ? list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic">SEARCHING FOR JOBS...</div>` : pending.forEach(o => renderOrderCard(o, list));  
+                }  
+            } else {  
+                allOrders.filter(o => o.status === 'DELIVERED' && o.riderId === currentRider.id).forEach(o => renderOrderCard(o, list));  
+            }  
+        });  
+    }  
 
-async function login(){
-    const p = phone.value;
-    const pw = btoa(pass.value);
+    function renderOrderCard(d, container) {  
+        let coordsOnly = d.address.includes("GPS: ") ? d.address.split("GPS: ")[1] : "";  
+        const mapUrl = coordsOnly ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordsOnly)}` : "#";  
 
-    const s = await db.collection("riders")
-    .where("phone","==",p)
-    .where("pass","==",pw)
-    .get();
+        let itemsHtml = "";  
+        if (d.items) {  
+            Object.values(d.items).forEach(item => {  
+                itemsHtml += `  
+                <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">  
+                    <div class="flex items-center gap-3">  
+                        <span class="w-6 h-6 rounded-lg bg-orange-500/20 flex items-center justify-center text-[10px] font-black text-orange-400">${item.qty}x</span>  
+                        <p class="text-[11px] font-bold text-slate-200">${item.name}</p>  
+                    </div>  
+                </div>`;  
+            });  
+        }  
 
-    if(s.empty) return alert("Wrong");
+        container.innerHTML += `  
+        <div class="order-card">  
+            <div class="flex justify-between items-center mb-4">  
+                <span class="text-[9px] font-black text-slate-500 tracking-widest uppercase">Order #${d.orderId}</span>  
+                <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${d.status === 'PENDING' ? 'bg-orange-500' : 'bg-blue-500'} text-white shadow-lg">  
+                    ${d.status}  
+                </span>  
+            </div>  
+              
+            <h4 class="text-lg font-black italic text-white">${d.customer.name}</h4>  
+            <p class="text-[11px] text-slate-400 mb-4 leading-tight"><i class="fa-solid fa-location-dot mr-1 text-orange-500/50"></i> ${d.address.split('|')[0]}</p>  
 
-    rider = {id:s.docs[0].id,...s.docs[0].data()};
-    localStorage.setItem("rider",JSON.stringify(rider));
-    location.reload();
-}
+            <div class="bg-slate-900/40 rounded-2xl p-4 mb-4 border border-white/5">  
+                <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Package Contents</p>  
+                ${itemsHtml}  
+            </div>  
 
-function load(){
+            <div class="flex justify-between items-end mb-6">  
+                <div>  
+                    <p class="text-[8px] font-black text-slate-500 uppercase">Total Bill</p>  
+                    <p class="text-2xl font-black text-green-400">₹${d.total}</p>  
+                </div>  
+                <div class="flex gap-2">  
+                    <a href="tel:${d.customer.phone}" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/10 active:scale-95 transition-transform"><i class="fa-solid fa-phone"></i></a>  
+                    <button onclick="window.open('${mapUrl}')" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10 active:scale-95 transition-transform"><i class="fa-solid fa-map-location-dot"></i></button>  
+                </div>  
+            </div>  
 
-db.collection("orders").onSnapshot(snap=>{
-    let html="";
+            ${d.status === 'PENDING' ? `<button onclick="updateJob('${d.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Accept Job</button>` : ''}  
+            ${d.status === 'ACCEPTED' ? `<button onclick="updateJob('${d.id}', 'DELIVERED')" class="w-full bg-green-600 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Confirm Delivery</button>` : ''}  
+        </div>`;  
+    }  
 
-    snap.forEach(doc=>{
-        const d = doc.data();
+    async function updateJob(docId, newStatus) {  
+        try {  
+            const data = { status: newStatus };  
+            if (newStatus === 'ACCEPTED') {   
+                data.riderId = currentRider.id;   
+                data.riderPhone = currentRider.phone;   
+                startSharingLocation(docId);   
+            } else if (newStatus === 'DELIVERED') {  
+                if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher);  
+            }  
+            await db.collection("orders").doc(docId).update(data);  
+        } catch (e) { alert("Error updating status."); }  
+    }  
 
-        if(d.status==="PENDING"){
-            html+=`
-            <div>
-                ${d.customer.name} ₹${d.total}
-                <button onclick="accept('${doc.id}')">Accept</button>
-            </div>`;
-        }
+    function startSharingLocation(id) {  
+        if (navigator.geolocation) {  
+            locationWatcher = navigator.geolocation.watchPosition(pos => {  
+                db.collection("orders").doc(id).update({   
+                    riderLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude }   
+                });  
+            }, null, { enableHighAccuracy: true });  
+        }  
+    }  
 
-        if(d.status==="ACCEPTED" && d.riderId===rider.id){
-            html+=`
-            <div>
-                Active Order ₹${d.total}
-                <button onclick="done('${doc.id}')">Done</button>
-            </div>`;
-        }
-    });
-
-    orders.innerHTML=html;
-});
-}
-
-async function accept(id){
-    const ref = db.collection("orders").doc(id);
-
-    await db.runTransaction(async t=>{
-        const doc = await t.get(ref);
-
-        if(doc.data().status!=="PENDING") throw "taken";
-
-        t.update(ref,{
-            status:"ACCEPTED",
-            riderId:rider.id
-        });
-    });
-}
-
-function done(id){
-    db.collection("orders").doc(id).update({
-        status:"DELIVERED"
-    });
-}
-
+    function switchTab(t) {   
+        currentTab = t;   
+        document.getElementById('tab-active').className = t === 'active' ? 'flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white shadow-lg' : 'flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400';  
+        document.getElementById('tab-history').className = t === 'history' ? 'flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white shadow-lg' : 'flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400';  
+        loadOrders();   
+    }  
+    function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }  
 </script>
-</body>
+
+</body>  
 </html>
