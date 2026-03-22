@@ -12,7 +12,7 @@
 
 <body class="bg-slate-100 p-4">
 
-<!-- LOGIN / SIGNUP -->
+<!-- AUTH -->
 <div id="auth" class="max-w-sm mx-auto bg-white p-6 rounded-xl shadow">
     <h2 class="font-bold text-lg mb-4 text-center">Village Express</h2>
 
@@ -21,22 +21,26 @@
     <input id="pass" type="password" placeholder="Password" class="p-3 border w-full mb-2">
 
     <button onclick="handleAuth()" class="bg-black text-white p-3 w-full mb-2">Login</button>
-    <button onclick="toggle()" class="text-sm text-blue-600 w-full">Create Account</button>
+    <button onclick="toggleMode()" class="text-sm text-blue-600 w-full">Create Account</button>
 </div>
 
 <!-- APP -->
 <div id="app" class="hidden">
-    <h2 id="welcome" class="font-bold text-lg mb-4"></h2>
+    <div class="flex justify-between items-center mb-4">
+        <h2 id="welcome" class="font-bold text-lg"></h2>
+        <button onclick="logout()" class="bg-red-500 text-white px-3 py-1 rounded">Logout</button>
+    </div>
+
     <div id="items"></div>
 
-    <button onclick="placeOrder()" class="bg-green-600 text-white p-3 w-full mt-4">
+    <button onclick="placeOrder()" class="bg-green-600 text-white p-3 w-full mt-4 rounded">
         Place Order
     </button>
 </div>
 
 <script>
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
+    apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A",
     projectId: "village-quick-commerce-e27f6"
 };
 
@@ -44,18 +48,19 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let isSignup = false;
-let user = JSON.parse(localStorage.getItem("user")) || null;
+let user = JSON.parse(localStorage.getItem("user_session")) || null;
 let cart = JSON.parse(localStorage.getItem("cart")) || {};
 
 // AUTO LOGIN
 if(user) init();
 
-function toggle(){
+// TOGGLE MODE
+function toggleMode(){
     isSignup = !isSignup;
     document.getElementById("name").classList.toggle("hidden", !isSignup);
 }
 
-// AUTH HANDLER
+// AUTH FUNCTION (FIXED)
 async function handleAuth(){
 
     const phone = document.getElementById("phone").value.trim();
@@ -70,19 +75,22 @@ async function handleAuth(){
 
         if(!name) return alert("Enter name");
 
-        // check existing
         const check = await db.collection("users")
-            .where("phone","==",phone).get();
+            .where("phone","==",phone)
+            .get();
 
         if(!check.empty) return alert("User already exists");
 
-        const newUser = { name, phone, pass: encodedPass };
+        const newUser = {
+            name,
+            phone,
+            pass: encodedPass // always save encoded
+        };
 
         await db.collection("users").add(newUser);
 
+        localStorage.setItem("user_session", JSON.stringify(newUser));
         alert("Account created");
-        user = newUser;
-        localStorage.setItem("user", JSON.stringify(user));
         location.reload();
 
     } else {
@@ -95,15 +103,18 @@ async function handleAuth(){
 
         const userData = snap.docs[0].data();
 
-        if(userData.pass !== encodedPass){
-            return alert("Wrong password");
+        // ✅ SUPPORT OLD + NEW PASSWORDS
+        if(userData.pass === pass || userData.pass === encodedPass){
+
+            user = userData;
+            localStorage.setItem("user_session", JSON.stringify(user));
+
+            alert("Login success");
+            location.reload();
+
+        } else {
+            alert("Wrong password");
         }
-
-        user = userData;
-        localStorage.setItem("user", JSON.stringify(user));
-
-        alert("Login success");
-        location.reload();
     }
 }
 
@@ -137,8 +148,8 @@ function loadProducts(){
 
                 ${
                     qty === 0
-                    ? `<button onclick="update('${doc.id}',${p.price},'${p.name}',1)" class="bg-black text-white px-3 py-1">Add</button>`
-                    : `<div class="flex gap-2">
+                    ? `<button onclick="update('${doc.id}',${p.price},'${p.name}',1)" class="bg-black text-white px-3 py-1 rounded">Add</button>`
+                    : `<div class="flex gap-2 items-center">
                         <button onclick="update('${doc.id}',${p.price},'${p.name}',-1)">-</button>
                         ${qty}
                         <button onclick="update('${doc.id}',${p.price},'${p.name}',1)">+</button>
@@ -151,7 +162,7 @@ function loadProducts(){
     });
 }
 
-// CART
+// CART UPDATE
 function update(id,price,name,chg){
     if(!cart[id]) cart[id] = {qty:0,price,name};
 
@@ -187,6 +198,12 @@ function placeOrder(){
     localStorage.removeItem("cart");
 }
 
+// LOGOUT
+function logout(){
+    localStorage.removeItem("user_session");
+    location.reload();
+}
 </script>
+
 </body>
 </html>
