@@ -1,58 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Village Express</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
-
 </head>
 
-<body class="p-4 bg-gray-100">
+<body class="bg-slate-50">
 
-<div id="auth">
-    <input id="phone" placeholder="Phone" class="p-2 border"><br><br>
-    <input id="pass" placeholder="Password" class="p-2 border"><br><br>
-    <button onclick="login()" class="bg-black text-white p-2">Login</button>
+<div id="auth" class="p-6">
+    <input id="phone" placeholder="Phone" class="p-3 border w-full mb-2">
+    <input id="pass" placeholder="Password" class="p-3 border w-full mb-2">
+    <button onclick="login()" class="bg-black text-white p-3 w-full">Login</button>
 </div>
 
-<div id="app" class="hidden">
-
-<h2 id="name"></h2>
-
-<div id="items"></div>
-
-<button onclick="openCart()">Cart</button>
-
+<div id="app" class="hidden p-4">
+    <h2 id="name" class="font-bold mb-4"></h2>
+    <div id="items"></div>
 </div>
 
 <script>
-
 const firebaseConfig = {
-apiKey: "YOUR_KEY",
-projectId: "village-quick-commerce-e27f6"
+    apiKey: "YOUR_KEY",
+    projectId: "village-quick-commerce-e27f6"
 };
-
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let user = JSON.parse(localStorage.getItem("user"));
 let cart = JSON.parse(localStorage.getItem("cart")) || {};
 
-if(user){
-    startApp();
-}
+if(user) init();
 
 async function login(){
-    const phone = phone.value;
+    const phone = document.getElementById("phone").value;
     const pass = btoa(document.getElementById("pass").value);
 
     const s = await db.collection("users")
     .where("phone","==",phone)
-    .where("pass","==",pass)
-    .get();
+    .where("pass","==",pass).get();
 
     if(s.empty) return alert("Invalid");
 
@@ -61,10 +51,10 @@ async function login(){
     location.reload();
 }
 
-function startApp(){
+function init(){
     document.getElementById("auth").style.display="none";
     document.getElementById("app").classList.remove("hidden");
-    document.getElementById("name").innerText = user.name;
+    document.getElementById("name").innerText="Hi "+user.name;
 
     loadProducts();
 }
@@ -76,36 +66,43 @@ function loadProducts(){
             const p = doc.data();
             if(!p.inStock) return;
 
-            html += `
-            <div class="bg-white p-3 mb-2">
-                ${p.name} - ₹${p.price}
-                <button onclick="add('${doc.id}',${p.price},'${p.name}')">Add</button>
+            const qty = cart[doc.id]?.qty || 0;
+
+            html+=`
+            <div class="bg-white p-3 mb-2 flex justify-between">
+                ${p.name} ₹${p.price}
+                ${
+                    qty==0
+                    ? `<button onclick="add('${doc.id}',${p.price},'${p.name}')">Add</button>`
+                    : `<div>
+                        <button onclick="add('${doc.id}',${p.price},'${p.name}',-1)">-</button>
+                        ${qty}
+                        <button onclick="add('${doc.id}',${p.price},'${p.name}',1)">+</button>
+                      </div>`
+                }
             </div>`;
         });
-        items.innerHTML = html;
+        items.innerHTML=html;
     });
 }
 
-function add(id,price,name){
+function add(id,price,name,chg=1){
     if(!cart[id]) cart[id]={qty:0,price,name};
-    cart[id].qty++;
+    cart[id].qty+=chg;
+    if(cart[id].qty<=0) delete cart[id];
     localStorage.setItem("cart", JSON.stringify(cart));
 }
 
-function openCart(){
+function placeOrder(){
     let total=0;
     Object.values(cart).forEach(i=> total+=i.qty*i.price);
 
-    if(total===0) return alert("Cart empty");
-
-    const addr = prompt("Enter address");
-    const gps = "0,0";
+    if(total==0) return alert("Empty");
 
     db.collection("orders").add({
         customer:user,
         items:cart,
         total,
-        address:addr+" | GPS:"+gps,
         status:"PENDING",
         timestamp:firebase.firestore.FieldValue.serverTimestamp()
     });
@@ -114,7 +111,6 @@ function openCart(){
     cart={};
     localStorage.removeItem("cart");
 }
-
 </script>
 </body>
 </html>
