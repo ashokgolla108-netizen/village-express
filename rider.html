@@ -85,8 +85,9 @@
         }
 
         function renderOrderCard(d, container) {
-            // FIX: Extract GPS coordinates only for map search
             let coordsOnly = d.address.includes("GPS: ") ? d.address.split("GPS: ")[1] : d.address;
+            // FIXED: Corrected template literal for map URL
+            const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(coordsOnly)}`;
 
             container.innerHTML += `<div class="bg-slate-800/50 border border-white/5 p-6 rounded-[2.5rem]">
                 <div class="flex justify-between items-center mb-4"><span class="text-[9px] font-black text-slate-500">#${d.orderId}</span><span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${d.status === 'PENDING' ? 'bg-orange-500' : 'bg-blue-500'} text-white">${d.status}</span></div>
@@ -95,7 +96,7 @@
                 <div class="flex justify-between items-center mt-2 mb-4"><p class="text-xl font-black text-green-400">₹${d.total}</p>
                     <div class="flex gap-2">
                         <a href="tel:${d.customer.phone}" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/10"><i class="fa-solid fa-phone"></i></a>
-                        <button onclick="window.open('https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordsOnly)}')" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10"><i class="fa-solid fa-map-location-dot"></i></button>
+                        <button onclick="window.open('${mapUrl}')" class="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10"><i class="fa-solid fa-map-location-dot"></i></button>
                     </div>
                 </div>
                 ${d.status === 'PENDING' ? `<button onclick="updateJob('${d.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-4 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Accept Job</button>` : ''}
@@ -106,8 +107,14 @@
         async function updateJob(docId, newStatus) {
             try {
                 const data = { status: newStatus };
-                if (newStatus === 'ACCEPTED') { data.riderId = currentRider.id; data.riderPhone = currentRider.phone; startSharingLocation(docId); }
-                else { if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher); alert("Delivery Confirmed!"); }
+                if (newStatus === 'ACCEPTED') { 
+                    data.riderId = currentRider.id; 
+                    data.riderPhone = currentRider.phone; 
+                    startSharingLocation(docId); 
+                } else { 
+                    if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher); 
+                    alert("Delivery Confirmed!"); 
+                }
                 await db.collection("orders").doc(docId).update(data);
             } catch (e) { alert("Failed to update."); }
         }
@@ -115,7 +122,9 @@
         function startSharingLocation(id) {
             if (navigator.geolocation) {
                 locationWatcher = navigator.geolocation.watchPosition(pos => {
-                    db.collection("orders").doc(id).update({ riderLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude } });
+                    db.collection("orders").doc(id).update({ 
+                        riderLocation: { lat: pos.coords.latitude, lng: pos.coords.longitude } 
+                    });
                 }, null, { enableHighAccuracy: true });
             }
         }
