@@ -10,107 +10,183 @@
 <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
 </head>
 
-<body class="bg-slate-50">
+<body class="bg-slate-100 p-4">
 
-<div id="auth" class="p-6">
+<!-- LOGIN / SIGNUP -->
+<div id="auth" class="max-w-sm mx-auto bg-white p-6 rounded-xl shadow">
+    <h2 class="font-bold text-lg mb-4 text-center">Village Express</h2>
+
+    <input id="name" placeholder="Name (signup only)" class="p-3 border w-full mb-2 hidden">
     <input id="phone" placeholder="Phone" class="p-3 border w-full mb-2">
-    <input id="pass" placeholder="Password" class="p-3 border w-full mb-2">
-    <button onclick="login()" class="bg-black text-white p-3 w-full">Login</button>
+    <input id="pass" type="password" placeholder="Password" class="p-3 border w-full mb-2">
+
+    <button onclick="handleAuth()" class="bg-black text-white p-3 w-full mb-2">Login</button>
+    <button onclick="toggle()" class="text-sm text-blue-600 w-full">Create Account</button>
 </div>
 
-<div id="app" class="hidden p-4">
-    <h2 id="name" class="font-bold mb-4"></h2>
+<!-- APP -->
+<div id="app" class="hidden">
+    <h2 id="welcome" class="font-bold text-lg mb-4"></h2>
     <div id="items"></div>
+
+    <button onclick="placeOrder()" class="bg-green-600 text-white p-3 w-full mt-4">
+        Place Order
+    </button>
 </div>
 
 <script>
 const firebaseConfig = {
-    apiKey: "YOUR_KEY",
+    apiKey: "YOUR_API_KEY",
     projectId: "village-quick-commerce-e27f6"
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let user = JSON.parse(localStorage.getItem("user"));
+let isSignup = false;
+let user = JSON.parse(localStorage.getItem("user")) || null;
 let cart = JSON.parse(localStorage.getItem("cart")) || {};
 
+// AUTO LOGIN
 if(user) init();
 
-async function login(){
-    const phone = document.getElementById("phone").value;
-    const pass = btoa(document.getElementById("pass").value);
-
-    const s = await db.collection("users")
-    .where("phone","==",phone)
-    .where("pass","==",pass).get();
-
-    if(s.empty) return alert("Invalid");
-
-    user = s.docs[0].data();
-    localStorage.setItem("user", JSON.stringify(user));
-    location.reload();
+function toggle(){
+    isSignup = !isSignup;
+    document.getElementById("name").classList.toggle("hidden", !isSignup);
 }
 
+// AUTH HANDLER
+async function handleAuth(){
+
+    const phone = document.getElementById("phone").value.trim();
+    const pass = document.getElementById("pass").value.trim();
+    const name = document.getElementById("name").value.trim();
+
+    if(!phone || !pass) return alert("Fill all fields");
+
+    const encodedPass = btoa(pass);
+
+    if(isSignup){
+
+        if(!name) return alert("Enter name");
+
+        // check existing
+        const check = await db.collection("users")
+            .where("phone","==",phone).get();
+
+        if(!check.empty) return alert("User already exists");
+
+        const newUser = { name, phone, pass: encodedPass };
+
+        await db.collection("users").add(newUser);
+
+        alert("Account created");
+        user = newUser;
+        localStorage.setItem("user", JSON.stringify(user));
+        location.reload();
+
+    } else {
+
+        const snap = await db.collection("users")
+            .where("phone","==",phone)
+            .get();
+
+        if(snap.empty) return alert("User not found");
+
+        const userData = snap.docs[0].data();
+
+        if(userData.pass !== encodedPass){
+            return alert("Wrong password");
+        }
+
+        user = userData;
+        localStorage.setItem("user", JSON.stringify(user));
+
+        alert("Login success");
+        location.reload();
+    }
+}
+
+// INIT APP
 function init(){
     document.getElementById("auth").style.display="none";
     document.getElementById("app").classList.remove("hidden");
-    document.getElementById("name").innerText="Hi "+user.name;
+
+    document.getElementById("welcome").innerText = "Hi " + user.name;
 
     loadProducts();
 }
 
+// LOAD PRODUCTS
 function loadProducts(){
     db.collection("products").onSnapshot(snap=>{
         let html="";
+
         snap.forEach(doc=>{
             const p = doc.data();
             if(!p.inStock) return;
 
             const qty = cart[doc.id]?.qty || 0;
 
-            html+=`
-            <div class="bg-white p-3 mb-2 flex justify-between">
-                ${p.name} ₹${p.price}
+            html += `
+            <div class="bg-white p-3 mb-2 flex justify-between items-center rounded">
+                <div>
+                    <p class="font-bold">${p.name}</p>
+                    <p>₹${p.price}</p>
+                </div>
+
                 ${
-                    qty==0
-                    ? `<button onclick="add('${doc.id}',${p.price},'${p.name}')">Add</button>`
-                    : `<div>
-                        <button onclick="add('${doc.id}',${p.price},'${p.name}',-1)">-</button>
+                    qty === 0
+                    ? `<button onclick="update('${doc.id}',${p.price},'${p.name}',1)" class="bg-black text-white px-3 py-1">Add</button>`
+                    : `<div class="flex gap-2">
+                        <button onclick="update('${doc.id}',${p.price},'${p.name}',-1)">-</button>
                         ${qty}
-                        <button onclick="add('${doc.id}',${p.price},'${p.name}',1)">+</button>
+                        <button onclick="update('${doc.id}',${p.price},'${p.name}',1)">+</button>
                       </div>`
                 }
             </div>`;
         });
-        items.innerHTML=html;
+
+        document.getElementById("items").innerHTML = html;
     });
 }
 
-function add(id,price,name,chg=1){
-    if(!cart[id]) cart[id]={qty:0,price,name};
-    cart[id].qty+=chg;
-    if(cart[id].qty<=0) delete cart[id];
+// CART
+function update(id,price,name,chg){
+    if(!cart[id]) cart[id] = {qty:0,price,name};
+
+    cart[id].qty += chg;
+
+    if(cart[id].qty <= 0) delete cart[id];
+
     localStorage.setItem("cart", JSON.stringify(cart));
 }
 
+// PLACE ORDER
 function placeOrder(){
-    let total=0;
-    Object.values(cart).forEach(i=> total+=i.qty*i.price);
 
-    if(total==0) return alert("Empty");
+    let total = 0;
 
-    db.collection("orders").add({
-        customer:user,
-        items:cart,
-        total,
-        status:"PENDING",
-        timestamp:firebase.firestore.FieldValue.serverTimestamp()
+    Object.values(cart).forEach(i=>{
+        total += i.qty * i.price;
     });
 
-    alert("Order placed");
-    cart={};
+    if(total === 0) return alert("Cart empty");
+
+    db.collection("orders").add({
+        customer: user,
+        items: cart,
+        total,
+        status: "PENDING",
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+    });
+
+    alert("Order placed successfully");
+
+    cart = {};
     localStorage.removeItem("cart");
 }
+
 </script>
 </body>
 </html>
