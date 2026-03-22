@@ -1,41 +1,49 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Village Express</title>
-
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Village Express</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #F7F9FB; }
+        .hidden { display: none !important; }
+    </style>
 </head>
 
-<body class="bg-slate-100 p-4">
+<body class="pb-32">
 
 <!-- AUTH -->
-<div id="auth" class="max-w-sm mx-auto bg-white p-6 rounded-xl shadow">
-    <h2 class="font-bold text-lg mb-4 text-center">Village Express</h2>
+<div id="auth-section" class="fixed inset-0 bg-white z-[3000] p-8 flex flex-col justify-center">
+    <div class="text-center space-y-6 max-w-sm mx-auto w-full">
+        <h1 class="text-4xl font-black italic text-green-700 uppercase">
+            Village<span class="text-orange-500">Express</span>
+        </h1>
 
-    <input id="name" placeholder="Name (signup only)" class="p-3 border w-full mb-2 hidden">
-    <input id="phone" placeholder="Phone" class="p-3 border w-full mb-2">
-    <input id="pass" type="password" placeholder="Password" class="p-3 border w-full mb-2">
+        <div id="signup-fields" class="hidden">
+            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl mb-4">
+        </div>
 
-    <button onclick="handleAuth()" class="bg-black text-white p-3 w-full mb-2">Login</button>
-    <button onclick="toggleMode()" class="text-sm text-blue-600 w-full">Create Account</button>
+        <input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 rounded-2xl">
+        <input type="password" id="auth-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl">
+
+        <button onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black">
+            Login
+        </button>
+
+        <button onclick="toggleAuthMode()" class="text-sm text-slate-500">
+            Create Account
+        </button>
+    </div>
 </div>
 
-<!-- APP -->
-<div id="app" class="hidden">
-    <div class="flex justify-between items-center mb-4">
-        <h2 id="welcome" class="font-bold text-lg"></h2>
-        <button onclick="logout()" class="bg-red-500 text-white px-3 py-1 rounded">Logout</button>
-    </div>
-
-    <div id="items"></div>
-
-    <button onclick="placeOrder()" class="bg-green-600 text-white p-3 w-full mt-4 rounded">
-        Place Order
-    </button>
+<!-- MAIN -->
+<div id="main-app" class="hidden p-4">
+    <h2 id="display-name" class="font-bold mb-4"></h2>
+    <div id="items-grid"></div>
 </div>
 
 <script>
@@ -47,69 +55,59 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
 let isSignup = false;
-let user = JSON.parse(localStorage.getItem("user_session")) || null;
-let cart = JSON.parse(localStorage.getItem("cart")) || {};
 
 // AUTO LOGIN
-if(user) init();
+window.onload = () => {
+    if(currentUser) showMainApp();
+};
 
-// TOGGLE MODE
-function toggleMode(){
+// TOGGLE
+function toggleAuthMode(){
     isSignup = !isSignup;
-    document.getElementById("name").classList.toggle("hidden", !isSignup);
+    document.getElementById('signup-fields')
+        .classList.toggle('hidden', !isSignup);
 }
 
-// AUTH FUNCTION (FIXED)
+// 🔥 FIXED LOGIN (MAIN CHANGE)
 async function handleAuth(){
 
-    const phone = document.getElementById("phone").value.trim();
-    const pass = document.getElementById("pass").value.trim();
-    const name = document.getElementById("name").value.trim();
-
-    if(!phone || !pass) return alert("Fill all fields");
-
-    const encodedPass = btoa(pass);
+    const phone = document.getElementById('auth-phone').value.trim();
+    const pass = document.getElementById('auth-pass').value.trim();
+    const encoded = btoa(pass);
 
     if(isSignup){
+
+        const name = document.getElementById('reg-name').value.trim();
 
         if(!name) return alert("Enter name");
 
         const check = await db.collection("users")
-            .where("phone","==",phone)
-            .get();
+            .where("phone","==",phone).get();
 
         if(!check.empty) return alert("User already exists");
 
-        const newUser = {
-            name,
-            phone,
-            pass: encodedPass // always save encoded
-        };
+        const user = { name, phone, pass: encoded };
 
-        await db.collection("users").add(newUser);
+        await db.collection("users").add(user);
 
-        localStorage.setItem("user_session", JSON.stringify(newUser));
-        alert("Account created");
+        localStorage.setItem('user_session', JSON.stringify(user));
         location.reload();
 
     } else {
 
         const snap = await db.collection("users")
-            .where("phone","==",phone)
-            .get();
+            .where("phone","==",phone).get();
 
         if(snap.empty) return alert("User not found");
 
-        const userData = snap.docs[0].data();
+        const user = snap.docs[0].data();
 
         // ✅ SUPPORT OLD + NEW PASSWORDS
-        if(userData.pass === pass || userData.pass === encodedPass){
+        if(user.pass === pass || user.pass === encoded){
 
-            user = userData;
-            localStorage.setItem("user_session", JSON.stringify(user));
-
-            alert("Login success");
+            localStorage.setItem('user_session', JSON.stringify(user));
             location.reload();
 
         } else {
@@ -118,90 +116,33 @@ async function handleAuth(){
     }
 }
 
-// INIT APP
-function init(){
-    document.getElementById("auth").style.display="none";
-    document.getElementById("app").classList.remove("hidden");
+// MAIN APP
+function showMainApp(){
+    document.getElementById('auth-section').classList.add('hidden');
+    document.getElementById('main-app').classList.remove('hidden');
 
-    document.getElementById("welcome").innerText = "Hi " + user.name;
+    document.getElementById('display-name').innerText =
+        "Hi, " + currentUser.name;
 
     loadProducts();
 }
 
-// LOAD PRODUCTS
+// PRODUCTS
 function loadProducts(){
     db.collection("products").onSnapshot(snap=>{
-        let html="";
+        const grid = document.getElementById('items-grid');
+        grid.innerHTML = "";
 
         snap.forEach(doc=>{
             const p = doc.data();
             if(!p.inStock) return;
 
-            const qty = cart[doc.id]?.qty || 0;
-
-            html += `
-            <div class="bg-white p-3 mb-2 flex justify-between items-center rounded">
-                <div>
-                    <p class="font-bold">${p.name}</p>
-                    <p>₹${p.price}</p>
-                </div>
-
-                ${
-                    qty === 0
-                    ? `<button onclick="update('${doc.id}',${p.price},'${p.name}',1)" class="bg-black text-white px-3 py-1 rounded">Add</button>`
-                    : `<div class="flex gap-2 items-center">
-                        <button onclick="update('${doc.id}',${p.price},'${p.name}',-1)">-</button>
-                        ${qty}
-                        <button onclick="update('${doc.id}',${p.price},'${p.name}',1)">+</button>
-                      </div>`
-                }
+            grid.innerHTML += `
+            <div class="bg-white p-4 mb-2 rounded">
+                ${p.name} - ₹${p.price}
             </div>`;
         });
-
-        document.getElementById("items").innerHTML = html;
     });
-}
-
-// CART UPDATE
-function update(id,price,name,chg){
-    if(!cart[id]) cart[id] = {qty:0,price,name};
-
-    cart[id].qty += chg;
-
-    if(cart[id].qty <= 0) delete cart[id];
-
-    localStorage.setItem("cart", JSON.stringify(cart));
-}
-
-// PLACE ORDER
-function placeOrder(){
-
-    let total = 0;
-
-    Object.values(cart).forEach(i=>{
-        total += i.qty * i.price;
-    });
-
-    if(total === 0) return alert("Cart empty");
-
-    db.collection("orders").add({
-        customer: user,
-        items: cart,
-        total,
-        status: "PENDING",
-        timestamp: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    alert("Order placed successfully");
-
-    cart = {};
-    localStorage.removeItem("cart");
-}
-
-// LOGOUT
-function logout(){
-    localStorage.removeItem("user_session");
-    location.reload();
 }
 </script>
 
