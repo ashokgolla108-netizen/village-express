@@ -174,7 +174,24 @@
         document.getElementById('order-name').value = currentUser.name;  
         document.getElementById('order-phone').value = currentUser.phone;  
         const list = document.getElementById('checkout-list'); list.innerHTML = "";  
-        let sub = 0; Object.values(cart).forEach(i => { sub += i.price * i.qty; list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100"><p class="text-xs font-black">${i.name} x ${i.qty}</p><p class="text-xs font-black">₹${i.price * i.qty}</p></div>`; });  
+        let sub = 0;   
+        
+        Object.values(cart).forEach(i => {   
+            sub += i.price * i.qty;   
+            list.innerHTML += `  
+                <div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100">  
+                    <div class="flex-1"><p class="text-xs font-black">${i.name}</p></div>  
+                    <div class="flex items-center gap-3">  
+                        <div class="flex items-center bg-white border rounded-xl p-1 shadow-sm">  
+                            <button onclick="updateQty('${i.id}', -1)" class="w-7 h-7 flex items-center justify-center bg-slate-100 rounded-lg text-slate-600 font-bold">-</button>  
+                            <span class="mx-3 font-black text-xs text-slate-900">${i.qty}</span>  
+                            <button onclick="updateQty('${i.id}', 1)" class="w-7 h-7 flex items-center justify-center bg-slate-900 rounded-lg text-white font-bold">+</button>  
+                        </div>  
+                        <p class="text-xs font-black w-14 text-right">₹${i.price * i.qty}</p>  
+                    </div>  
+                </div>`;   
+        });  
+        
         document.getElementById('bill-details').innerHTML = `<div class="flex justify-between text-white/50 text-[10px] font-bold uppercase"><span>Subtotal</span><span>₹${sub}</span></div><div class="flex justify-between text-white/50 text-[10px] font-bold uppercase border-b border-white/10 pb-2"><span>Delivery</span><span>₹15</span></div><div class="flex justify-between font-black text-2xl pt-2"><span>Total</span><span>₹${sub+15}</span></div>`;  
         setPayment('CASH'); document.getElementById('checkout-view').classList.remove('hidden');  
     }  
@@ -203,7 +220,7 @@
             snap.docs.sort((a,b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0)).forEach(doc => {  
                 const d = doc.data();  
                 const hasLoc = d.riderLocation;  
-                const isActive = d.status === "ACCEPTED";  
+                const isActive = d.status === "ACCEPTED" || d.status === "OUT FOR DELIVERY";  
 
                 html += `  
                 <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-4">  
