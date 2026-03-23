@@ -8,14 +8,13 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F7F9FB; }
 .product-card { background: white; border-radius: 24px; padding: 12px; border: 1px solid #f1f5f9; }
 .hidden { display: none !important; }
-.animate-pulse-slow { animation: pulse 3s infinite; }
 </style>
 </head>
 
@@ -23,55 +22,34 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F7F9FB; 
 
 <!-- AUTH -->
 <div id="auth-section" class="fixed inset-0 bg-white z-[3000] p-8 flex flex-col justify-center">
-<div class="text-center space-y-6 max-w-sm mx-auto w-full">
-<h1 class="text-4xl font-black italic text-green-700 uppercase">Village<span class="text-orange-500">Express</span></h1>
+    <div class="text-center space-y-6 max-w-sm mx-auto w-full">
+        <h1 class="text-4xl font-black italic text-green-700 uppercase">
+            Village<span class="text-orange-500">Express</span>
+        </h1>
 
-<div id="signup-fields" class="hidden">
-<input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold mb-4">
-</div>
+        <div id="signup-fields" class="hidden">
+            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl mb-4">
+        </div>
 
-<input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">
-<input type="password" id="auth-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">
+        <input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 rounded-2xl">
+        <input type="password" id="auth-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl">
 
-<button onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl uppercase">Login</button>
-<button onclick="toggleAuthMode()" class="text-sm font-bold text-slate-500">New here? <span class="text-green-600">Create Account</span></button>
-</div>
+        <button onclick="handleAuth()" class="w-full bg-black text-white p-5 rounded-2xl">Login</button>
+        <button onclick="toggleAuthMode()" id="toggle-link" class="text-sm">
+            New here? Create Account
+        </button>
+    </div>
 </div>
 
 <!-- MAIN -->
 <div id="main-app" class="hidden">
 
-<header class="p-6 sticky top-0 bg-[#F7F9FB]/90 backdrop-blur-md z-50 flex justify-between items-center">
-<div>
-<p class="text-[9px] font-black text-slate-400 uppercase">Delivery to</p>
-<h2 id="display-name" class="font-black text-sm text-slate-900">User</h2>
-</div>
-<button onclick="handleLogout()" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
-<i class="fa-solid fa-power-off"></i>
-</button>
+<header class="p-6 flex justify-between">
+    <h2 id="display-name"></h2>
+    <button onclick="handleLogout()">Logout</button>
 </header>
 
-<main id="items-grid" class="px-4 grid grid-cols-2 gap-4 mt-2"></main>
-
-<nav class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-around items-center">
-<button onclick="renderCategories()">Home</button>
-<button onclick="showPage('orders')">Orders</button>
-</nav>
-
-<div id="cart-bar" class="fixed bottom-24 left-4 right-4 hidden">
-<button onclick="openCheckout()" class="w-full bg-slate-900 text-white flex justify-between items-center p-5 rounded-2xl">
-<div>
-<p id="cart-count">0 Items</p>
-<p id="cart-total-bar">₹0</p>
-</div>
-<div>Review Order</div>
-</button>
-</div>
-
-<div id="orders-page" class="hidden p-6">
-<h2>Orders</h2>
-<div id="orders-history-list"></div>
-</div>
+<main id="items-grid" class="px-4 grid grid-cols-2 gap-4"></main>
 
 </div>
 
@@ -79,8 +57,8 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F7F9FB; 
 const RUPEE = "₹";
 
 const firebaseConfig = {
-apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A",
-projectId: "village-quick-commerce-e27f6"
+    apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A",
+    projectId: "village-quick-commerce-e27f6"
 };
 
 firebase.initializeApp(firebaseConfig);
@@ -89,107 +67,89 @@ const db = firebase.firestore();
 let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
 let cart = {}, gps = "", isSignup = false;
 
-window.onload = () => { if(currentUser) showMainApp(); };
+window.onload = () => {
+    if(currentUser) showMainApp();
+};
 
 function toggleAuthMode() {
-isSignup = !isSignup;
-document.getElementById('signup-fields').classList.toggle('hidden', !isSignup);
+    isSignup = !isSignup;
+    document.getElementById('signup-fields').classList.toggle('hidden', !isSignup);
 }
 
 async function handleAuth() {
-const phone = document.getElementById('auth-phone').value.trim();
-const pass = document.getElementById('auth-pass').value.trim();
+    const phone = document.getElementById('auth-phone').value.trim();
+    const pass = document.getElementById('auth-pass').value.trim();
 
-if(isSignup) {
-const name = document.getElementById('reg-name').value.trim();
-const user = { name, phone, pass };
-await db.collection("users").add(user);
-loginUser(user);
-} else {
-const s = await db.collection("users")
-.where("phone","==",phone)
-.where("pass","==",pass)
-.get();
+    if(isSignup) {
+        const name = document.getElementById('reg-name').value.trim();
+        const user = { name, phone, pass };
+        await db.collection("users").add(user);
+        loginUser(user);
+    } else {
+        const s = await db.collection("users")
+            .where("phone","==",phone)
+            .where("pass","==",pass)
+            .get();
 
-if(!s.empty) loginUser(s.docs[0].data());
-else alert("Invalid Login");
-}
+        if(!s.empty) loginUser(s.docs[0].data());
+        else alert("Invalid Login");
+    }
 }
 
 function loginUser(u) {
-localStorage.setItem('user_session', JSON.stringify(u));
-location.reload();
+    localStorage.setItem('user_session', JSON.stringify(u));
+    location.reload();
 }
 
 function handleLogout() {
-localStorage.removeItem('user_session');
-location.reload();
+    localStorage.removeItem('user_session');
+    location.reload();
 }
 
 function showMainApp() {
-document.getElementById('auth-section').classList.add('hidden');
-document.getElementById('main-app').classList.remove('hidden');
-document.getElementById('display-name').innerText = "Hi, " + currentUser.name;
-renderCategories();
+    document.getElementById('auth-section').classList.add('hidden');
+    document.getElementById('main-app').classList.remove('hidden');
+    document.getElementById('display-name').innerText = "Hi, " + currentUser.name;
+    renderCategories();
 }
 
-/* FIXED ONLY BACKTICKS BELOW */
-
 function renderCategories() {
-const grid = document.getElementById('items-grid');
+    const grid = document.getElementById('items-grid');
+    grid.innerHTML = `<p>Browse</p>`;
 
-grid.innerHTML = `<p>Browse</p>`;
-
-db.collection("categories").onSnapshot(snap => {
-snap.forEach(doc => {
-grid.innerHTML += `<div onclick="renderProducts('${doc.id}')" class="product-card text-center">${doc.data().name}</div>`;
-});
-});
+    db.collection("categories").onSnapshot(snap => {
+        snap.forEach(doc => {
+            grid.innerHTML += `
+            <div onclick="renderProducts('${doc.id}')" class="product-card">
+                <p>${doc.data().name}</p>
+            </div>`;
+        });
+    });
 }
 
 function renderProducts(catId) {
-const grid = document.getElementById('items-grid');
+    const grid = document.getElementById('items-grid');
+    grid.innerHTML = `<button onclick="renderCategories()">Back</button>`;
 
-grid.innerHTML = `<button onclick="renderCategories()">Back</button>`;
-
-db.collection("products").where("categoryId", "==", catId).onSnapshot(snap => {
-snap.forEach(doc => {
-const p = { id: doc.id, ...doc.data() };
-if(!p.inStock) return;
-
-const qty = cart[p.id]?.qty || 0;
-
-grid.innerHTML += `<div class="product-card">
-<p>${p.name}</p>
-<p>${RUPEE}${p.price}</p>
-${qty === 0
-? `<button onclick="updateQty('${p.id}', 1)">Add</button>`
-: `<div><button onclick="updateQty('${p.id}', -1)">-</button>${qty}<button onclick="updateQty('${p.id}', 1)">+</button></div>`}
-</div>`;
-});
-});
+    db.collection("products")
+    .where("categoryId", "==", catId)
+    .onSnapshot(snap => {
+        snap.forEach(doc => {
+            const p = doc.data();
+            grid.innerHTML += `
+            <div class="product-card">
+                <p>${p.name}</p>
+                <p>${RUPEE}${p.price}</p>
+                <button onclick="addToCart('${doc.id}', ${p.price}, '${p.name}')">Add</button>
+            </div>`;
+        });
+    });
 }
 
-function updateQty(id, chg) {
-db.collection("products").doc(id).get().then(doc => {
-if(!cart[id]) cart[id] = { ...doc.data(), id: doc.id, qty: 0 };
-cart[id].qty += chg;
-if(cart[id].qty <= 0) delete cart[id];
-updateCartUI();
-});
-}
-
-function updateCartUI() {
-let sub = 0, count = 0;
-
-Object.values(cart).forEach(i => {
-sub += i.price * i.qty;
-count += i.qty;
-});
-
-document.getElementById('cart-bar').classList.toggle('hidden', count === 0);
-document.getElementById('cart-total-bar').innerText = `${RUPEE}${sub + 15}`;
-document.getElementById('cart-count').innerText = `${count} Items`;
+function addToCart(id, price, name) {
+    if(!cart[id]) cart[id] = {id, price, name, qty:0};
+    cart[id].qty++;
+    console.log(cart);
 }
 </script>
 
