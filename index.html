@@ -204,6 +204,6 @@ html += `<div class="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-4">
 function getGPS(btn) { navigator.geolocation.getCurrentPosition(p => { gps = p.coords.latitude + "," + p.coords.longitude; btn.innerText = "Location Fixed ✅"; btn.className="w-full p-4 bg-green-50 text-green-600 font-black rounded-2xl border text-[10px]"; }); }
 function showPage(p) { document.getElementById('orders-page').classList.toggle('hidden', p!=='orders'); if(p==='orders') loadOrderHistory(); }
 function closeCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }
-</script>    </body>
-
+</script>   
+</body>
 </html>
