@@ -1,3 +1,5 @@
+Rider code 
+
 <!DOCTYPE html>  
 <html lang="en">  
 <head>  
@@ -11,7 +13,7 @@
     <style>  
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@700;800&display=swap');  
         body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #0F172A; color: white; -webkit-tap-highlight-color: transparent; }  
-        .order-card { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2.5rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); margin-bottom: 1.5rem; }  
+        .order-card { background: rgba(30, 41, 59, 0.5); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 2.5rem; padding: 1.5rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }  
         .hidden { display: none !important; }  
     </style>  
 </head>  
@@ -21,8 +23,8 @@
 <div id="auth-overlay" class="fixed inset-0 bg-white z-[2000] p-8 flex flex-col justify-center items-center text-slate-900">  
     <div class="w-full max-w-sm space-y-6 text-center">  
         <h1 class="text-4xl font-black italic tracking-tighter">RIDER<span class="text-orange-500">PORTAL</span></h1>  
-        <input type="tel" id="login-phone" placeholder="Mobile" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">  
-        <input type="password" id="login-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">  
+        <input type="tel" id="login-phone" placeholder="Mobile" class="w-full p-5 bg-slate-100 rounded-2xl outline-none">  
+        <input type="password" id="login-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl outline-none">  
         <button onclick="handleLogin()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-2xl">START SHIFT</button>  
     </div>  
 </div>  
@@ -50,19 +52,27 @@ let currentRider = JSON.parse(localStorage.getItem('rider_session')) || null;
 let currentTab = 'active', locationWatcher = null;  
 
 window.onload = () => {  
-    if(currentRider) initRider();  
+    if(!currentRider) {  
+        document.getElementById('auth-overlay').style.display = 'flex';  
+    } else {  
+        initRider();  
+    }  
 };  
 
 async function handleLogin() {  
     const p = document.getElementById('login-phone').value;  
     const pw = document.getElementById('login-pass').value;  
-    const s = await db.collection("riders").where("phone","==",p).where("pass","==",pw).get();  
 
-    if(s.empty) return alert("Incorrect login credentials.");  
+    const s = await db.collection("riders")  
+        .where("phone","==",p)  
+        .where("pass","==",pw)  
+        .get();  
+
+    if(s.empty) return alert("Incorrect login.");  
 
     currentRider = { id: s.docs[0].id, ...s.docs[0].data() };  
     localStorage.setItem('rider_session', JSON.stringify(currentRider));  
-    initRider();  
+    location.reload();  
 }  
 
 function initRider() {  
@@ -76,26 +86,23 @@ function loadOrders() {
     db.collection("orders").onSnapshot(snap => {  
         const list = document.getElementById('order-list');  
         list.innerHTML = "";  
+
         const allOrders = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));  
 
         if (currentTab === 'active') {  
-            // Check if THIS rider already has a job in progress
-            const myJob = allOrders.find(o => o.status === 'OUT FOR DELIVERY' && o.riderId === currentRider.id);  
+            const myActiveJob = allOrders.find(o =>   
+                (o.status === 'OUT FOR DELIVERY') && o.riderId === currentRider.id  
+            );  
 
-            if (myJob) {  
-                renderOrderCard(myJob, list);  
-                startSharingLocation(myJob.id); // Resume sharing if page reloads
+            if (myActiveJob) {  
+                renderOrderCard(myActiveJob, list);  
             } else {  
-                // Show available PENDING orders to pick up
                 const pending = allOrders.filter(o => o.status === 'PENDING');  
-                if(pending.length === 0) {  
-                    list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic">SEARCHING FOR NEW JOBS...</div>`;  
-                } else {  
-                    pending.forEach(o => renderOrderCard(o, list));  
-                }  
+                pending.length === 0   
+                    ? list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic">SEARCHING FOR JOBS...</div>`   
+                    : pending.forEach(o => renderOrderCard(o, list));  
             }  
         } else {  
-            // HISTORY TAB: Show only DELIVERED orders for this rider
             allOrders  
                 .filter(o => o.status === 'DELIVERED' && o.riderId === currentRider.id)  
                 .forEach(o => renderOrderCard(o, list));  
@@ -104,35 +111,33 @@ function loadOrders() {
 }  
 
 function renderOrderCard(d, container) {  
-    let itemsHtml = "";  
-    Object.values(d.items || {}).forEach(item => {  
-        itemsHtml += `  
-        <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">  
-            <div class="flex items-center gap-3">  
-                <span class="w-6 h-6 rounded-lg bg-orange-500/20 flex items-center justify-center text-[10px] font-black text-orange-400">${item.qty}x</span>  
-                <p class="text-[11px] font-bold text-slate-200">${item.name}</p>  
-            </div>  
-        </div>`;  
-    });  
+    let coordsOnly = d.address.includes("GPS: ") ? d.address.split("GPS: ")[1] : "";  
+    const mapUrl = coordsOnly ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordsOnly)}` : "#";  
 
-    // Google Maps Navigation Link
-    let gpsLink = "#";  
-    if(d.address.includes("GPS: ")) {  
-        const coords = d.address.split("GPS: ")[1];  
-        gpsLink = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coords)}`;  
+    let itemsHtml = "";  
+    if (d.items) {  
+        Object.values(d.items).forEach(item => {  
+            itemsHtml += `  
+            <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">  
+                <div class="flex items-center gap-3">  
+                    <span class="w-6 h-6 rounded-lg bg-orange-500/20 flex items-center justify-center text-[10px] font-black text-orange-400">${item.qty}x</span>  
+                    <p class="text-[11px] font-bold text-slate-200">${item.name}</p>  
+                </div>  
+            </div>`;  
+        });  
     }  
 
     container.innerHTML += `  
     <div class="order-card">  
         <div class="flex justify-between items-center mb-4">  
             <span class="text-[9px] font-black text-slate-500 uppercase">Order #${d.orderId}</span>  
-            <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${d.status === 'DELIVERED' ? 'bg-slate-700' : 'bg-blue-500'} text-white">  
+            <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase bg-blue-500 text-white">  
                 ${d.status}  
             </span>  
         </div>  
           
         <h4 class="text-lg font-black italic text-white">${d.customer.name}</h4>  
-        <p class="text-[11px] text-slate-400 mb-4"><i class="fa-solid fa-location-dot text-orange-500"></i> ${d.address.split('|')[0]}</p>  
+        <p class="text-[11px] text-slate-400 mb-4"><i class="fa-solid fa-location-dot"></i> ${d.address.split('|')[0]}</p>  
 
         <div class="bg-slate-900/40 rounded-2xl p-4 mb-4 border border-white/5">  
             ${itemsHtml}  
@@ -144,61 +149,51 @@ function renderOrderCard(d, container) {
                 <p class="text-2xl font-black text-green-400">₹${d.total}</p>  
             </div>  
             <div class="flex gap-2">  
-                <a href="tel:${d.customer.phone}" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/5"><i class="fa-solid fa-phone"></i></a>  
-                <a href="${gpsLink}" target="_blank" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/5"><i class="fa-solid fa-map-location-dot"></i></a>  
+                <a href="tel:${d.customer.phone}" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-blue-400"><i class="fa-solid fa-phone"></i></a>  
+                <button onclick="window.open('${mapUrl}')" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-orange-400"><i class="fa-solid fa-map-location-dot"></i></button>  
             </div>  
         </div>  
 
-        ${d.status === 'PENDING' ? `<button onclick="acceptJob('${d.id}')" class="w-full bg-orange-500 py-5 rounded-2xl font-black text-white shadow-lg active:scale-95 transition-all">Accept Job</button>` : ''}  
-        ${d.status === 'OUT FOR DELIVERY' ? `<button onclick="markDelivered('${d.id}')" class="w-full bg-green-600 py-5 rounded-2xl font-black text-white shadow-lg active:scale-95 transition-all">Mark as Delivered</button>` : ''}  
+        ${d.status === 'PENDING' ? `<button onclick="acceptJob('${d.id}')" class="w-full bg-orange-500 py-5 rounded-2xl font-black">Accept Job</button>` : ''}  
+        ${d.status === 'OUT FOR DELIVERY' ? `<button onclick="markDelivered('${d.id}')" class="w-full bg-green-600 py-5 rounded-2xl font-black">Confirm Delivery</button>` : ''}  
     </div>`;  
 }  
 
 async function acceptJob(id) {  
-    try {  
-        await db.collection("orders").doc(id).update({  
-            riderId: currentRider.id,  
-            riderPhone: currentRider.phone,  
-            status: "OUT FOR DELIVERY"  
-        });  
-        startSharingLocation(id);  
-    } catch(e) { alert("Error accepting job"); }  
+    await db.collection("orders").doc(id).update({  
+        riderId: currentRider.id,  
+        riderPhone: currentRider.phone,  
+        status: "OUT FOR DELIVERY"  
+    });  
+
+    startSharingLocation(id);  
 }  
 
 async function markDelivered(id) {  
     if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher);  
-    await db.collection("orders").doc(id).update({ status: "DELIVERED" });  
+
+    await db.collection("orders").doc(id).update({  
+        status: "DELIVERED"  
+    });  
 }  
 
-function startSharingLocation(orderDocId) {  
+function startSharingLocation(id) {  
     if (navigator.geolocation) {  
         if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher);  
 
         locationWatcher = navigator.geolocation.watchPosition(pos => {  
-            db.collection("orders").doc(orderDocId).update({  
+            db.collection("orders").doc(id).update({  
                 riderLocation: {  
                     lat: pos.coords.latitude,  
                     lng: pos.coords.longitude  
                 }  
-            }).catch(e => console.error("Location update failed", e));  
-        }, (err) => console.error("GPS Error", err), { enableHighAccuracy: true });  
-    } else {  
-        alert("GPS is not supported on this device.");  
+            });  
+        }, null, { enableHighAccuracy: true });  
     }  
 }  
 
 function switchTab(t) {  
     currentTab = t;  
-    const actBtn = document.getElementById('tab-active');  
-    const histBtn = document.getElementById('tab-history');  
-    
-    if(t === 'active') {  
-        actBtn.className = "flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white shadow-lg";  
-        histBtn.className = "flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400";  
-    } else {  
-        histBtn.className = "flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white shadow-lg";  
-        actBtn.className = "flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400";  
-    }  
     loadOrders();  
 }  
 
