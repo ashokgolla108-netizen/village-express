@@ -10,49 +10,53 @@
 </head>  
 <body class="bg-slate-50 p-4 pb-20 font-sans">  
     <div class="max-w-md mx-auto space-y-6">  
-        <h1 class="text-2xl font-black text-slate-800 italic">STORE<span class="text-green-600">CONTROL</span></h1>  <div class="bg-white p-6 rounded-3xl border shadow-sm">  
-        <h2 class="font-black text-xs text-slate-400 uppercase mb-4 tracking-widest">Add New Item</h2>  
-        <div class="space-y-3">  
-            <select id="prod-cat" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
-                <option value="">Select Category</option>  
-            </select>  
-              
-            <input type="text" id="prod-name" placeholder="Item Name (e.g. Fresh Milk)" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
-            <input type="number" id="prod-price" placeholder="Price (â‚¹)" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
-              
-            <select id="prod-icon" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
-                <option value="fa-box">Default Box Icon</option>  
-                <option value="fa-apple-whole">Fruits/Veg ðŸŽ</option>  
-                <option value="fa-drumstick-bite">Meat/Chicken ðŸ—</option>  
-                <option value="fa-cookie">Snacks ðŸª</option>  
-                <option value="fa-bottle-water">Drinks ðŸ¥¤</option>  
-                <option value="fa-egg">Dairy/Eggs ðŸ¥š</option>  
-            </select>  
+        <div class="flex justify-between items-center">  
+            <h1 class="text-2xl font-black text-slate-800 italic">STORE<span class="text-green-600">CONTROL</span></h1>  
+            <button onclick="addCategory()" class="bg-blue-600 text-white text-[10px] font-black px-4 py-2 rounded-xl">+ NEW CATEGORY</button>  
+        </div>  
 
-            <button id="add-btn" onclick="saveProd()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-lg active:scale-95 transition-transform">  
-                ADD TO INVENTORY  
-            </button>  
+        <div class="bg-white p-6 rounded-3xl border shadow-sm">  
+            <h2 class="font-black text-xs text-slate-400 uppercase mb-4 tracking-widest">Add New Item</h2>  
+            <div class="space-y-3">  
+                <select id="prod-cat" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
+                    <option value="">Select Category</option>  
+                </select>  
+                <input type="text" id="prod-name" placeholder="Item Name" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
+                <input type="number" id="prod-price" placeholder="Price (₹)" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
+                <select id="prod-icon" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
+                    <option value="fa-box">Default Box Icon</option>  
+                    <option value="fa-apple-whole">Fruits/Veg 🍎</option>  
+                    <option value="fa-drumstick-bite">Meat/Chicken 🍗</option>  
+                    <option value="fa-cookie">Snacks 🍪</option>  
+                    <option value="fa-bottle-water">Drinks 🥛</option>  
+                    <option value="fa-egg">Dairy/Eggs 🥚</option>  
+                </select>  
+                <button id="add-btn" onclick="saveProd()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-lg">ADD TO INVENTORY</button>  
+            </div>  
+        </div>  
+
+        <div class="bg-white p-6 rounded-3xl border shadow-sm">  
+            <h2 class="font-black text-xs text-slate-400 uppercase mb-4 tracking-widest text-center">Current Inventory</h2>  
+            <div id="inventory-list" class="space-y-2"></div>  
         </div>  
     </div>  
-
-    <div class="bg-white p-6 rounded-3xl border shadow-sm">  
-        <h2 class="font-black text-xs text-slate-400 uppercase mb-4 tracking-widest text-center">Current Inventory</h2>  
-        <div id="inventory-list" class="space-y-2"></div>  
-    </div>  
-</div>  
 
 <script>  
     const firebaseConfig = { apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A", projectId: "village-quick-commerce-e27f6" };  
     firebase.initializeApp(firebaseConfig);  
     const db = firebase.firestore();  
 
-    // Load Categories into Dropdown  
     db.collection("categories").onSnapshot(snap => {  
         const select = document.getElementById('prod-cat');  
         let options = `<option value="">Select Category</option>`;  
         snap.forEach(doc => { options += `<option value="${doc.id}">${doc.data().name}</option>`; });  
         select.innerHTML = options;  
     });  
+
+    async function addCategory() {  
+        const name = prompt("New Category Name:");  
+        if (name) await db.collection("categories").add({ name: name });  
+    }  
 
     async function saveProd() {  
         const name = document.getElementById('prod-name').value;  
@@ -63,14 +67,8 @@
         if(!name || !price || !catId) return alert("Fill all fields");  
 
         await db.collection("products").add({  
-            name,   
-            price: parseFloat(price),   
-            categoryId: catId,   
-            icon: icon, // Using Icon instead of Image URL  
-            inStock: true,  
-            timestamp: firebase.firestore.FieldValue.serverTimestamp()  
+            name, price: parseFloat(price), categoryId: catId, icon: icon, inStock: true, timestamp: firebase.firestore.FieldValue.serverTimestamp()  
         });  
-
         alert("Product Added!");  
         document.getElementById('prod-name').value = "";  
         document.getElementById('prod-price').value = "";  
@@ -84,18 +82,11 @@
             list.innerHTML += `  
             <div class="flex justify-between items-center p-4 bg-slate-50 rounded-2xl border border-slate-100">  
                 <div class="flex items-center gap-3">  
-                    <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-slate-400">  
-                        <i class="fa-solid ${p.icon || 'fa-box'}"></i>  
-                    </div>  
-                    <div>  
-                        <p class="text-xs font-black text-slate-800">${p.name}</p>  
-                        <p class="text-[10px] font-bold text-green-600">â‚¹${p.price}</p>  
-                    </div>  
+                    <div class="w-10 h-10 rounded-lg bg-white flex items-center justify-center text-slate-400"><i class="fa-solid ${p.icon || 'fa-box'}"></i></div>  
+                    <div><p class="text-xs font-black text-slate-800">${p.name}</p><p class="text-[10px] font-bold text-green-600">₹${p.price}</p></div>  
                 </div>  
                 <div class="flex gap-2">  
-                    <button onclick="toggleStock('${doc.id}', ${p.inStock})" class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${p.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">  
-                        ${p.inStock ? 'In Stock' : 'Out'}  
-                    </button>  
+                    <button onclick="toggleStock('${doc.id}', ${p.inStock})" class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${p.inStock ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">${p.inStock ? 'In Stock' : 'Out'}</button>  
                     <button onclick="deleteProd('${doc.id}')" class="text-red-300 p-2"><i class="fa-solid fa-trash"></i></button>  
                 </div>  
             </div>`;  
@@ -104,7 +95,6 @@
 
     async function toggleStock(id, s) { await db.collection("products").doc(id).update({ inStock: !s }); }  
     async function deleteProd(id) { if(confirm("Delete?")) await db.collection("products").doc(id).delete(); }  
-</script>
-
+</script>  
 </body>  
 </html>
