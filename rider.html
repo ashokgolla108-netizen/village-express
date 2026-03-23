@@ -25,12 +25,12 @@
 
 <div id="main-app" class="hidden">  
     <header class="p-6 bg-slate-800/40 border-b border-white/5 sticky top-0 z-50 flex justify-between items-center backdrop-blur-md">  
-        <div><h2 id="rider-name" class="text-xl font-black italic text-white">---</h2><p class="text-[10px] font-bold text-green-400 uppercase mt-1">â— Online</p></div>  
+        <div><h2 id="rider-name" class="text-xl font-black italic text-white">---</h2><p class="text-[10px] font-bold text-green-400 uppercase mt-1">● Online</p></div>  
         <button onclick="handleLogout()" class="w-12 h-12 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20"><i class="fa-solid fa-power-off"></i></button>  
     </header>  
 
     <div class="flex p-4 gap-3">  
-        <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white shadow-lg shadow-orange-500/20">Active Jobs</button>  
+        <button onclick="switchTab('active')" id="tab-active" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-orange-500 text-white shadow-lg">Active Jobs</button>  
         <button onclick="switchTab('history')" id="tab-history" class="flex-1 py-4 rounded-2xl font-black text-[10px] uppercase bg-slate-800 text-slate-400">History</button>  
     </div>  
 
@@ -74,7 +74,7 @@
                     renderOrderCard(myActiveJob, list);  
                 } else {  
                     const pending = allOrders.filter(o => o.status === 'PENDING');  
-                    pending.length === 0 ? list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic">SEARCHING FOR JOBS...</div>` : pending.forEach(o => renderOrderCard(o, list));  
+                    pending.length === 0 ? list.innerHTML = `<div class="p-20 text-center opacity-20 font-black italic">SEARCHING...</div>` : pending.forEach(o => renderOrderCard(o, list));  
                 }  
             } else {  
                 allOrders.filter(o => o.status === 'DELIVERED' && o.riderId === currentRider.id).forEach(o => renderOrderCard(o, list));  
@@ -84,51 +84,35 @@
 
     function renderOrderCard(d, container) {  
         let coordsOnly = d.address.includes("GPS: ") ? d.address.split("GPS: ")[1] : "";  
-        const mapUrl = coordsOnly ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(coordsOnly)}` : "#";  
+        const mapUrl = coordsOnly ? `https://www.google.com/maps/dir/?api=1&destination=${coordsOnly}` : "#";  
 
         let itemsHtml = "";  
         if (d.items) {  
             Object.values(d.items).forEach(item => {  
-                itemsHtml += `  
-                <div class="flex justify-between items-center py-2 border-b border-white/5 last:border-0">  
-                    <div class="flex items-center gap-3">  
-                        <span class="w-6 h-6 rounded-lg bg-orange-500/20 flex items-center justify-center text-[10px] font-black text-orange-400">${item.qty}x</span>  
-                        <p class="text-[11px] font-bold text-slate-200">${item.name}</p>  
-                    </div>  
-                </div>`;  
+                itemsHtml += `<div class="flex justify-between items-center py-2"><p class="text-[11px] font-bold text-slate-200">${item.qty}x ${item.name}</p></div>`;  
             });  
         }  
 
         container.innerHTML += `  
         <div class="order-card">  
-            <div class="flex justify-between items-center mb-4">  
-                <span class="text-[9px] font-black text-slate-500 tracking-widest uppercase">Order #${d.orderId}</span>  
-                <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${d.status === 'PENDING' ? 'bg-orange-500' : 'bg-blue-500'} text-white shadow-lg">  
+            <div class="flex justify-between mb-4">  
+                <span class="text-[9px] font-black text-slate-500 uppercase">#${d.orderId}</span>  
+                <span class="px-3 py-1 rounded-full text-[8px] font-black uppercase ${d.status === 'PENDING' ? 'bg-orange-500' : 'bg-blue-500'} text-white">  
                     ${d.status}  
                 </span>  
             </div>  
-              
             <h4 class="text-lg font-black italic text-white">${d.customer.name}</h4>  
-            <p class="text-[11px] text-slate-400 mb-4 leading-tight"><i class="fa-solid fa-location-dot mr-1 text-orange-500/50"></i> ${d.address.split('|')[0]}</p>  
-
-            <div class="bg-slate-900/40 rounded-2xl p-4 mb-4 border border-white/5">  
-                <p class="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-2">Package Contents</p>  
-                ${itemsHtml}  
-            </div>  
-
+            <p class="text-[11px] text-slate-400 mb-4 truncate"><i class="fa-solid fa-location-dot mr-1"></i> ${d.address.split('|')[0]}</p>  
+            <div class="bg-slate-900/40 rounded-2xl p-4 mb-4 border border-white/5">${itemsHtml}</div>  
             <div class="flex justify-between items-end mb-6">  
-                <div>  
-                    <p class="text-[8px] font-black text-slate-500 uppercase">Total Bill</p>  
-                    <p class="text-2xl font-black text-green-400">â‚¹${d.total}</p>  
-                </div>  
+                <div><p class="text-[8px] font-black text-slate-500 uppercase">Total Bill</p><p class="text-2xl font-black text-green-400">₹${d.total}</p></div>  
                 <div class="flex gap-2">  
-                    <a href="tel:${d.customer.phone}" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/10 active:scale-95 transition-transform"><i class="fa-solid fa-phone"></i></a>  
-                    <button onclick="window.open('${mapUrl}')" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10 active:scale-95 transition-transform"><i class="fa-solid fa-map-location-dot"></i></button>  
+                    <a href="tel:${d.customer.phone}" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-blue-400 border border-white/10"><i class="fa-solid fa-phone"></i></a>  
+                    <button onclick="window.open('${mapUrl}')" class="w-12 h-12 rounded-2xl bg-white/5 flex items-center justify-center text-orange-400 border border-white/10"><i class="fa-solid fa-map-location-dot"></i></button>  
                 </div>  
             </div>  
-
-            ${d.status === 'PENDING' ? `<button onclick="updateJob('${d.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Accept Job</button>` : ''}  
-            ${d.status === 'ACCEPTED' ? `<button onclick="updateJob('${d.id}', 'DELIVERED')" class="w-full bg-green-600 py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-xl">Confirm Delivery</button>` : ''}  
+            ${d.status === 'PENDING' ? `<button onclick="updateJob('${d.id}', 'ACCEPTED')" class="w-full bg-orange-500 py-5 rounded-2xl font-black text-[11px] uppercase shadow-xl">Accept Job</button>` : ''}  
+            ${d.status === 'ACCEPTED' ? `<button onclick="updateJob('${d.id}', 'DELIVERED')" class="w-full bg-green-600 py-5 rounded-2xl font-black text-[11px] uppercase shadow-xl">Confirm Delivery</button>` : ''}  
         </div>`;  
     }  
 
@@ -143,7 +127,7 @@
                 if(locationWatcher) navigator.geolocation.clearWatch(locationWatcher);  
             }  
             await db.collection("orders").doc(docId).update(data);  
-        } catch (e) { alert("Error updating status."); }  
+        } catch (e) { alert("Error."); }  
     }  
 
     function startSharingLocation(id) {  
@@ -163,7 +147,6 @@
         loadOrders();   
     }  
     function handleLogout() { localStorage.removeItem('rider_session'); location.reload(); }  
-</script>
-
+</script>  
 </body>  
 </html>
