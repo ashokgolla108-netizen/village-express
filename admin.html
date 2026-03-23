@@ -18,15 +18,15 @@
             </select>  
               
             <input type="text" id="prod-name" placeholder="Item Name (e.g. Fresh Milk)" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
-            <input type="number" id="prod-price" placeholder="Price (â‚¹)" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
+            <input type="number" id="prod-price" placeholder="Price (\u20B9)" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
               
             <select id="prod-icon" class="w-full p-4 bg-slate-100 rounded-xl outline-none text-sm">  
                 <option value="fa-box">Default Box Icon</option>  
-                <option value="fa-apple-whole">Fruits/Veg ðŸŽ</option>  
-                <option value="fa-drumstick-bite">Meat/Chicken ðŸ—</option>  
-                <option value="fa-cookie">Snacks ðŸª</option>  
-                <option value="fa-bottle-water">Drinks ðŸ¥¤</option>  
-                <option value="fa-egg">Dairy/Eggs ðŸ¥š</option>  
+                <option value="fa-apple-whole">Fruits/Veg \uD83C\uDF4E</option>  
+                <option value="fa-drumstick-bite">Meat/Chicken \uD83C\uDF57</option>  
+                <option value="fa-cookie">Snacks \uD83C\uDF6A</option>  
+                <option value="fa-bottle-water">Drinks \uD83E\uDD64</option>  
+                <option value="fa-egg">Dairy/Eggs \uD83E\uDD5A</option>  
             </select>  
 
             <button id="add-btn" onclick="saveProd()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-lg active:scale-95 transition-transform">  
@@ -66,7 +66,7 @@
             name,   
             price: parseFloat(price),   
             categoryId: catId,   
-            icon: icon, // Using Icon instead of Image URL  
+            icon: icon,   
             inStock: true,  
             timestamp: firebase.firestore.FieldValue.serverTimestamp()  
         });  
@@ -89,7 +89,7 @@
                     </div>  
                     <div>  
                         <p class="text-xs font-black text-slate-800">${p.name}</p>  
-                        <p class="text-[10px] font-bold text-green-600">â‚¹${p.price}</p>  
+                        <p class="text-[10px] font-bold text-green-600">\u20B9${p.price}</p>  
                     </div>  
                 </div>  
                 <div class="flex gap-2">  
