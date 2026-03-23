@@ -148,6 +148,7 @@ function updateQty(id, chg) {
         cart[id].qty += chg;  
         if(cart[id].qty <= 0) delete cart[id];  
         updateCartUI();  
+        if(!document.getElementById('checkout-view').classList.contains('hidden')) openCheckout();  
     });  
 }  
 
@@ -159,6 +160,8 @@ function updateCartUI() {
     document.getElementById('cart-count').innerText = `${count} Items`;  
 }  
 
+function setPayment(m) { paymentMethod = m; }  
+
 function openCheckout() {  
     document.getElementById('order-name').value = currentUser.name;  
     document.getElementById('order-phone').value = currentUser.phone;  
@@ -167,9 +170,9 @@ function openCheckout() {
     let sub = 0;  
     Object.values(cart).forEach(i => {  
         sub += i.price * i.qty;  
-        list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border"><p class="text-xs font-black">${i.name} x ${i.qty}</p><p class="text-xs font-black">${RUPEE}${i.price * i.qty}</p></div>`;  
+        list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100"><p class="text-xs font-black">${i.name} x ${i.qty}</p><p class="text-xs font-black">${RUPEE}${i.price * i.qty}</p></div>`;  
     });  
-    document.getElementById('bill-details').innerHTML = `<div class="flex justify-between"><span>Subtotal</span><span>${RUPEE}${sub}</span></div><div class="flex justify-between"><span>Delivery</span><span>${RUPEE}15</span></div><div class="flex justify-between font-black text-xl"><span>Total</span><span>${RUPEE}${sub+15}</span></div>`;  
+    document.getElementById('bill-details').innerHTML = `<div class="flex justify-between text-white/50 text-[10px] font-bold uppercase"><span>Subtotal</span><span>${RUPEE}${sub}</span></div><div class="flex justify-between text-white/50 text-[10px] font-bold uppercase border-b pb-2"><span>Delivery</span><span>${RUPEE}15</span></div><div class="flex justify-between font-black text-2xl pt-2"><span>Total</span><span>${RUPEE}${sub+15}</span></div>`;  
     document.getElementById('checkout-view').classList.remove('hidden');  
 }  
 
@@ -198,22 +201,32 @@ function loadOrderHistory() {
     db.collection("orders").where("customer.user_id", "==", currentUser.phone).onSnapshot(snap => {  
         if(snap.empty) return list.innerHTML = `<p class="text-center py-10 text-slate-300 font-bold uppercase text-[10px]">No History Found</p>`;  
         let html = "";  
-        snap.docs.forEach(doc => {  
+        snap.docs.sort((a,b)=> (b.data().timestamp?.seconds||0)-(a.data().timestamp?.seconds||0))  
+        .forEach(doc => {  
             const d = doc.data();  
+            const hasLoc = d.riderLocation;  
+            const isActive = d.status==="ACCEPTED"||d.status==="OUT FOR DELIVERY";  
+
             html += `<div class="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-4">  
                 <div class="flex justify-between items-start mb-4">  
-                    <div><p class="text-[9px] font-black text-slate-300">#${d.orderId}</p><p class="text-sm font-black text-green-600">${d.status}</p></div>  
+                    <div><p class="text-[9px] font-black text-slate-300">#${d.orderId}</p><p class="text-sm font-black ${d.status==='DELIVERED'?'text-slate-400':'text-green-600'}">${d.status}</p></div>  
                     <p class="text-xl font-black text-slate-900">${RUPEE}${d.total}</p>  
                 </div>  
-                <p class="text-[10px] text-slate-400 font-bold">${Object.values(d.items).map(i => i.name).join(', ')}</p>  
+
+                ${(hasLoc && isActive)?`<div class="w-full h-44 rounded-3xl overflow-hidden border mb-4"><iframe width="100%" height="100%" src="https://maps.google.com/maps?q=${hasLoc.lat},${hasLoc.lng}&z=15&output=embed"></iframe></div>`:''}
+
+                <div class="flex justify-between items-center gap-2">  
+                    <div class="flex-1"><p class="text-[10px] text-slate-400 font-bold truncate">${Object.values(d.items).map(i=>i.name).join(', ')}</p></div>  
+                    ${isActive && d.riderPhone?`<a href="tel:${d.riderPhone}" class="flex items-center gap-2 bg-green-50 text-green-600 px-4 py-2 rounded-xl text-[10px] font-black animate-pulse-slow"><i class="fa-solid fa-phone"></i> CALL RIDER</a>`:''}  
+                </div>  
             </div>`;  
         });  
         list.innerHTML = html;  
     });  
 }  
 
-function getGPS(btn) { navigator.geolocation.getCurrentPosition(p => { gps = p.coords.latitude + "," + p.coords.longitude; btn.innerText = "Location Fixed ✅"; }); }  
-function showPage(p) { document.getElementById('orders-page').classList.toggle('hidden', p !== 'orders'); if(p==='orders') loadOrderHistory(); }  
+function getGPS(btn) { navigator.geolocation.getCurrentPosition(p => { gps = p.coords.latitude + "," + p.coords.longitude; btn.innerText = "Location Fixed ✅"; btn.className="w-full p-4 bg-green-50 text-green-600 font-black rounded-2xl border text-[10px]"; }); }  
+function showPage(p) { document.getElementById('orders-page').classList.toggle('hidden', p!=='orders'); if(p==='orders') loadOrderHistory(); }  
 function closeCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }  
 </script>  
 
