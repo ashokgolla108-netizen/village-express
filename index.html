@@ -15,7 +15,8 @@
         .animate-pulse-slow { animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite; }  
     </style>  
 </head>  
-<body class="pb-32">  <div id="auth-section" class="fixed inset-0 bg-white z-[3000] p-8 flex flex-col justify-center">  
+<body class="pb-32">  
+<div id="auth-section" class="fixed inset-0 bg-white z-[3000] p-8 flex flex-col justify-center">  
     <div class="text-center space-y-6 max-w-sm mx-auto w-full">  
         <h1 class="text-4xl font-black italic text-green-700 uppercase">Village<span class="text-orange-500">Express</span></h1>  
         <div id="signup-fields" class="hidden"><input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold mb-4"></div>  
@@ -41,7 +42,7 @@
 
     <div id="cart-bar" class="fixed bottom-24 left-4 right-4 hidden z-[100]">  
         <button onclick="openCheckout()" class="w-full bg-slate-900 text-white flex justify-between items-center p-5 rounded-[2rem] shadow-2xl">  
-            <div class="text-left"><p id="cart-count" class="text-[9px] font-black opacity-50">0 Items</p><p id="cart-total-bar" class="text-xl font-black">â‚¹0</p></div>  
+            <div class="text-left"><p id="cart-count" class="text-[9px] font-black opacity-50">0 Items</p><p id="cart-total-bar" class="text-xl font-black">\u20B90</p></div>  
             <div class="bg-green-600 px-6 py-2 rounded-2xl text-[10px] font-black uppercase">Review Order</div>  
         </button>  
     </div>  
@@ -62,7 +63,7 @@
             <input type="text" id="order-name" placeholder="Full Name" class="w-full p-4 bg-white rounded-2xl text-sm font-bold outline-none border-none shadow-sm">  
             <input type="tel" id="order-phone" placeholder="Mobile Number" class="w-full p-4 bg-white rounded-2xl text-sm font-bold outline-none border-none shadow-sm">  
             <input type="text" id="order-addr" placeholder="House/Street/Landmark" class="w-full p-4 bg-white rounded-2xl text-sm font-bold outline-none border-none shadow-sm">  
-            <button onclick="getGPS(this)" id="gps-btn" class="w-full p-4 bg-blue-50 text-blue-600 font-black text-[10px] rounded-2xl border border-blue-100">ðŸ“ Confirm GPS Location</button>  
+            <button onclick="getGPS(this)" id="gps-btn" class="w-full p-4 bg-blue-50 text-blue-600 font-black text-[10px] rounded-2xl border border-blue-100">\uD83D\uDCCD Confirm GPS Location</button>  
         </div>  
         <div id="checkout-list" class="space-y-3"></div>  
         <div class="bg-slate-900 p-8 rounded-[3rem] text-white shadow-2xl">  
@@ -86,7 +87,6 @@
 
     window.onload = () => { if(currentUser) showMainApp(); };  
 
-    // --- AUTH ---  
     function toggleAuthMode() { isSignup = !isSignup; document.getElementById('signup-fields').classList.toggle('hidden', !isSignup); }  
     async function handleAuth() {  
         const phone = document.getElementById('auth-phone').value.trim();  
@@ -102,7 +102,6 @@
     function loginUser(u) { localStorage.setItem('user_session', JSON.stringify(u)); location.reload(); }  
     function handleLogout() { localStorage.removeItem('user_session'); location.reload(); }  
 
-    // --- SHOP LOGIC ---  
     function showMainApp() { document.getElementById('auth-section').classList.add('hidden'); document.getElementById('main-app').classList.remove('hidden'); document.getElementById('display-name').innerText = "Hi, " + currentUser.name; renderCategories(); }  
       
     function renderCategories() {  
@@ -119,7 +118,7 @@
                 const p = { id: doc.id, ...doc.data() }; if(!p.inStock) return;  
                 const qty = cart[p.id]?.qty || 0;  
                 grid.innerHTML += `<div class="product-card text-center flex flex-col justify-between shadow-sm">  
-                    <div><div class="w-full aspect-square flex items-center justify-center text-4xl text-slate-200 mb-2"><i class="fa-solid ${p.icon || 'fa-box'}"></i></div><p class="text-[10px] font-bold text-slate-500">${p.name}</p><p class="text-sm font-black text-slate-900 mb-4">â‚¹${p.price}</p></div>  
+                    <div><div class="w-full aspect-square flex items-center justify-center text-4xl text-slate-200 mb-2"><i class="fa-solid ${p.icon || 'fa-box'}"></i></div><p class="text-[10px] font-bold text-slate-500">${p.name}</p><p class="text-sm font-black text-slate-900 mb-4">\u20B9${p.price}</p></div>  
                     ${qty === 0 ? `<button onclick="updateQty('${p.id}', 1)" class="w-full py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase">Add</button>` : `<div class="flex items-center justify-between bg-green-600 text-white rounded-xl p-1 shadow-lg"><button onclick="updateQty('${p.id}', -1)" class="w-8 h-8 flex items-center justify-center bg-white/20 rounded-lg">-</button><span class="font-black text-xs">${qty}</span><button onclick="updateQty('${p.id}', 1)" class="w-8 h-8 flex items-center justify-center bg-white/20 rounded-lg">+</button></div>`}  
                 </div>`;  
             });  
@@ -137,11 +136,10 @@
     function updateCartUI() {  
         let sub = 0, count = 0; Object.values(cart).forEach(i => { sub += i.price * i.qty; count += i.qty; });  
         document.getElementById('cart-bar').classList.toggle('hidden', count === 0);  
-        document.getElementById('cart-total-bar').innerText = `â‚¹${sub + 15}`;  
+        document.getElementById('cart-total-bar').innerText = `\u20B9${sub + 15}`;  
         document.getElementById('cart-count').innerText = `${count} Items`;  
     }  
 
-    // --- CHECKOUT & PAYMENT ---  
     function setPayment(m) {  
         paymentMethod = m;  
         document.getElementById('pay-cash').className = m === 'CASH' ? 'py-4 rounded-2xl border border-green-500 font-black text-xs bg-green-500/10 text-green-500' : 'py-4 rounded-2xl border border-white/10 font-black text-xs bg-white/5';  
@@ -152,8 +150,8 @@
         document.getElementById('order-name').value = currentUser.name;  
         document.getElementById('order-phone').value = currentUser.phone;  
         const list = document.getElementById('checkout-list'); list.innerHTML = "";  
-        let sub = 0; Object.values(cart).forEach(i => { sub += i.price * i.qty; list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100"><p class="text-xs font-black">${i.name} x ${i.qty}</p><p class="text-xs font-black">â‚¹${i.price * i.qty}</p></div>`; });  
-        document.getElementById('bill-details').innerHTML = `<div class="flex justify-between text-white/50 text-[10px] font-bold uppercase"><span>Subtotal</span><span>â‚¹${sub}</span></div><div class="flex justify-between text-white/50 text-[10px] font-bold uppercase border-b border-white/10 pb-2"><span>Delivery</span><span>â‚¹15</span></div><div class="flex justify-between font-black text-2xl pt-2"><span>Total</span><span>â‚¹${sub+15}</span></div>`;  
+        let sub = 0; Object.values(cart).forEach(i => { sub += i.price * i.qty; list.innerHTML += `<div class="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100"><p class="text-xs font-black">${i.name} x ${i.qty}</p><p class="text-xs font-black">\u20B9${i.price * i.qty}</p></div>`; });  
+        document.getElementById('bill-details').innerHTML = `<div class="flex justify-between text-white/50 text-[10px] font-bold uppercase"><span>Subtotal</span><span>\u20B9${sub}</span></div><div class="flex justify-between text-white/50 text-[10px] font-bold uppercase border-b border-white/10 pb-2"><span>Delivery</span><span>\u20B915</span></div><div class="flex justify-between font-black text-2xl pt-2"><span>Total</span><span>\u20B9${sub+15}</span></div>`;  
         setPayment('CASH'); document.getElementById('checkout-view').classList.remove('hidden');  
     }  
 
@@ -172,7 +170,6 @@
         alert("Order Success!"); location.reload();  
     }  
 
-    // --- ORDER HISTORY & LIVE MAP & CALL ---  
     function loadOrderHistory() {  
         const list = document.getElementById('orders-history-list');  
         db.collection("orders").where("customer.user_id", "==", currentUser.phone).onSnapshot(snap => {  
@@ -181,14 +178,13 @@
             snap.docs.sort((a,b) => (b.data().timestamp?.seconds || 0) - (a.data().timestamp?.seconds || 0)).forEach(doc => {  
                 const d = doc.data();  
                 const hasLoc = d.riderLocation;  
-                // Only show map if status is Accepted or Out for Delivery  
                 const isActive = d.status === "ACCEPTED" || d.status === "OUT FOR DELIVERY";  
 
                 html += `  
                 <div class="bg-white p-6 rounded-[2.5rem] border shadow-sm mb-4">  
                     <div class="flex justify-between items-start mb-4">  
                         <div><p class="text-[9px] font-black text-slate-300">#${d.orderId}</p><p class="text-sm font-black ${d.status === 'DELIVERED' ? 'text-slate-400' : 'text-green-600'}">${d.status}</p></div>  
-                        <p class="text-xl font-black text-slate-900">â‚¹${d.total}</p>  
+                        <p class="text-xl font-black text-slate-900">\u20B9${d.total}</p>  
                     </div>  
                       
                     ${(hasLoc && isActive) ? `  
@@ -211,10 +207,9 @@
         });  
     }  
 
-    function getGPS(btn) { navigator.geolocation.getCurrentPosition(p => { gps = p.coords.latitude + "," + p.coords.longitude; btn.innerText = "Location Fixed âœ…"; btn.className = "w-full p-4 bg-green-50 text-green-600 font-black rounded-2xl border border-green-100 text-[10px]"; }, null, {enableHighAccuracy:true}); }  
+    function getGPS(btn) { navigator.geolocation.getCurrentPosition(p => { gps = p.coords.latitude + "," + p.coords.longitude; btn.innerText = "Location Fixed \u2705"; btn.className = "w-full p-4 bg-green-50 text-green-600 font-black rounded-2xl border border-green-100 text-[10px]"; }, null, {enableHighAccuracy:true}); }  
     function showPage(p) { document.getElementById('orders-page').classList.toggle('hidden', p !== 'orders'); if(p === 'orders') loadOrderHistory(); }  
     function closeCheckout() { document.getElementById('checkout-view').classList.add('hidden'); }  
 </script>
-
 </body>  
 </html>
