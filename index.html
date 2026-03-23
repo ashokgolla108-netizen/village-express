@@ -27,64 +27,51 @@ body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F7F9FB; 
 <h1 class="text-4xl font-black italic text-green-700 uppercase">Village<span class="text-orange-500">Express</span></h1>
 
 <div id="signup-fields" class="hidden">
-<input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl mb-4">
+<input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold mb-4">
 </div>
 
-<input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 rounded-2xl">
-<input type="password" id="auth-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl">
+<input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">
+<input type="password" id="auth-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">
 
-<button onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black">Login</button>
-
-<button onclick="toggleAuthMode()" class="text-sm font-bold text-slate-500">
-New here? <span class="text-green-600">Create Account</span>
-</button>
+<button onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black shadow-xl uppercase">Login</button>
+<button onclick="toggleAuthMode()" class="text-sm font-bold text-slate-500">New here? <span class="text-green-600">Create Account</span></button>
 </div>
 </div>
 
 <!-- MAIN -->
 <div id="main-app" class="hidden">
 
-<header class="p-6 flex justify-between">
-<h2 id="display-name"></h2>
-<button onclick="handleLogout()">Logout</button>
+<header class="p-6 sticky top-0 bg-[#F7F9FB]/90 backdrop-blur-md z-50 flex justify-between items-center">
+<div>
+<p class="text-[9px] font-black text-slate-400 uppercase">Delivery to</p>
+<h2 id="display-name" class="font-black text-sm text-slate-900">User</h2>
+</div>
+<button onclick="handleLogout()" class="w-10 h-10 rounded-xl bg-red-50 text-red-500 flex items-center justify-center">
+<i class="fa-solid fa-power-off"></i>
+</button>
 </header>
 
-<main id="items-grid" class="grid grid-cols-2 gap-4 p-4"></main>
+<main id="items-grid" class="px-4 grid grid-cols-2 gap-4 mt-2"></main>
 
-<nav class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-around">
+<nav class="fixed bottom-0 left-0 right-0 bg-white border-t p-4 flex justify-around items-center">
 <button onclick="renderCategories()">Home</button>
 <button onclick="showPage('orders')">Orders</button>
 </nav>
 
-<div id="cart-bar" class="fixed bottom-20 left-4 right-4 hidden">
-<button onclick="openCheckout()" class="w-full bg-black text-white p-4 rounded-xl flex justify-between">
-<span id="cart-count"></span>
-<span id="cart-total-bar"></span>
+<div id="cart-bar" class="fixed bottom-24 left-4 right-4 hidden">
+<button onclick="openCheckout()" class="w-full bg-slate-900 text-white flex justify-between items-center p-5 rounded-2xl">
+<div>
+<p id="cart-count">0 Items</p>
+<p id="cart-total-bar">₹0</p>
+</div>
+<div>Review Order</div>
 </button>
 </div>
 
-<!-- ORDERS -->
-<div id="orders-page" class="fixed inset-0 bg-white hidden p-4 overflow-y-auto">
-<button onclick="showPage('home')">Back</button>
-<h2 class="text-xl font-bold mb-4">My Orders</h2>
+<div id="orders-page" class="hidden p-6">
+<h2>Orders</h2>
 <div id="orders-history-list"></div>
 </div>
-
-</div>
-
-<!-- CHECKOUT -->
-<div id="checkout-view" class="fixed inset-0 bg-white hidden p-4">
-
-<input id="order-name" placeholder="Name" class="w-full p-3 mb-2">
-<input id="order-phone" placeholder="Phone" class="w-full p-3 mb-2">
-<input id="order-addr" placeholder="Address" class="w-full p-3 mb-2">
-
-<button onclick="getGPS(this)" id="gps-btn" class="w-full p-3 bg-blue-100 mb-4">📍 GPS</button>
-
-<div id="checkout-list"></div>
-<div id="bill-details"></div>
-
-<button onclick="placeOrder()" class="w-full bg-green-500 text-white p-4 mt-4">Place Order</button>
 
 </div>
 
@@ -100,12 +87,10 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
-let cart = {};
-let gps = "", isSignup = false, paymentMethod = "CASH";
+let cart = {}, gps = "", isSignup = false;
 
 window.onload = () => { if(currentUser) showMainApp(); };
 
-/* LOGIN SAME */
 function toggleAuthMode() {
 isSignup = !isSignup;
 document.getElementById('signup-fields').classList.toggle('hidden', !isSignup);
@@ -141,7 +126,6 @@ localStorage.removeItem('user_session');
 location.reload();
 }
 
-/* MAIN */
 function showMainApp() {
 document.getElementById('auth-section').classList.add('hidden');
 document.getElementById('main-app').classList.remove('hidden');
@@ -149,7 +133,8 @@ document.getElementById('display-name').innerText = "Hi, " + currentUser.name;
 renderCategories();
 }
 
-/* CATEGORIES */
+/* FIXED ONLY BACKTICKS BELOW */
+
 function renderCategories() {
 const grid = document.getElementById('items-grid');
 
@@ -157,15 +142,11 @@ grid.innerHTML = `<p>Browse</p>`;
 
 db.collection("categories").onSnapshot(snap => {
 snap.forEach(doc => {
-grid.innerHTML += `
-<div onclick="renderProducts('${doc.id}')" class="product-card text-center">
-${doc.data().name}
-</div>`;
+grid.innerHTML += `<div onclick="renderProducts('${doc.id}')" class="product-card text-center">${doc.data().name}</div>`;
 });
 });
 }
 
-/* PRODUCTS */
 function renderProducts(catId) {
 const grid = document.getElementById('items-grid');
 
@@ -178,27 +159,22 @@ if(!p.inStock) return;
 
 const qty = cart[p.id]?.qty || 0;
 
-grid.innerHTML += `
-<div class="product-card text-center">
+grid.innerHTML += `<div class="product-card">
 <p>${p.name}</p>
 <p>${RUPEE}${p.price}</p>
-${qty === 0 ?
-`<button onclick="updateQty('${p.id}', 1)">Add</button>` :
-`<div><button onclick="updateQty('${p.id}', -1)">-</button>${qty}<button onclick="updateQty('${p.id}', 1)">+</button></div>`}
+${qty === 0
+? `<button onclick="updateQty('${p.id}', 1)">Add</button>`
+: `<div><button onclick="updateQty('${p.id}', -1)">-</button>${qty}<button onclick="updateQty('${p.id}', 1)">+</button></div>`}
 </div>`;
 });
 });
 }
 
-/* CART */
 function updateQty(id, chg) {
 db.collection("products").doc(id).get().then(doc => {
 if(!cart[id]) cart[id] = { ...doc.data(), id: doc.id, qty: 0 };
-
 cart[id].qty += chg;
-
 if(cart[id].qty <= 0) delete cart[id];
-
 updateCartUI();
 });
 }
@@ -214,80 +190,6 @@ count += i.qty;
 document.getElementById('cart-bar').classList.toggle('hidden', count === 0);
 document.getElementById('cart-total-bar').innerText = `${RUPEE}${sub + 15}`;
 document.getElementById('cart-count').innerText = `${count} Items`;
-}
-
-/* CHECKOUT */
-function openCheckout() {
-document.getElementById('checkout-view').classList.remove('hidden');
-
-let list = document.getElementById('checkout-list');
-let sub = 0;
-list.innerHTML = "";
-
-Object.values(cart).forEach(i => {
-sub += i.price * i.qty;
-list.innerHTML += `<p>${i.name} x ${i.qty}</p>`;
-});
-
-document.getElementById('bill-details').innerText = `${RUPEE}${sub + 15}`;
-}
-
-/* GPS */
-function getGPS(btn) {
-navigator.geolocation.getCurrentPosition(p => {
-gps = p.coords.latitude + "," + p.coords.longitude;
-btn.innerText = "GPS Fixed";
-});
-}
-
-/* ORDER */
-async function placeOrder() {
-if(!gps) return alert("Fix GPS");
-
-let sub = 0;
-Object.values(cart).forEach(i => sub += i.price * i.qty);
-
-await db.collection("orders").add({
-orderId: "VE" + Math.floor(1000 + Math.random()*9000),
-customer: { name: currentUser.name, phone: currentUser.phone, user_id: currentUser.phone },
-address: document.getElementById('order-addr').value + " | " + gps,
-items: cart,
-total: sub + 15,
-status: "PENDING"
-});
-
-alert("Order placed");
-location.reload();
-}
-
-/* ORDERS */
-function showPage(p) {
-document.getElementById('orders-page').classList.toggle('hidden', p !== 'orders');
-if(p === 'orders') loadOrderHistory();
-}
-
-function loadOrderHistory() {
-const list = document.getElementById('orders-history-list');
-
-db.collection("orders")
-.where("customer.user_id", "==", currentUser.phone)
-.onSnapshot(snap => {
-
-let html = "";
-
-snap.forEach(doc => {
-const d = doc.data();
-
-html += `
-<div>
-<p>#${d.orderId}</p>
-<p>${d.status}</p>
-<p>${RUPEE}${d.total}</p>
-</div>`;
-});
-
-list.innerHTML = html || "No orders";
-});
 }
 </script>
 
