@@ -1,48 +1,65 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Village Express</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Village Express</title>
 
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.1.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-<style>
-body { background:#F7F9FB; font-family:sans-serif;}
-.product-card { background:white; border-radius:20px; padding:12px;}
-.hidden { display:none !important;}
-</style>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: #F7F9FB; -webkit-tap-highlight-color: transparent; }
+        .product-card { background: white; border-radius: 24px; padding: 12px; border: 1px solid #f1f5f9; }
+        .hidden { display: none !important; }
+        .animate-pulse-slow { animation: pulse 3s infinite; }
+    </style>
 </head>
 
 <body class="pb-32">
 
 <!-- AUTH -->
-<div id="auth-section" class="fixed inset-0 bg-white flex items-center justify-center">
-<div class="space-y-4 w-80">
-<input id="auth-phone" placeholder="Phone" class="w-full p-3 bg-gray-100 rounded">
-<input id="auth-pass" placeholder="Password" class="w-full p-3 bg-gray-100 rounded">
-<button onclick="handleAuth()" class="w-full bg-black text-white p-3 rounded">Login</button>
-</div>
+<div id="auth-section" class="fixed inset-0 bg-white z-[3000] p-8 flex flex-col justify-center">
+    <div class="text-center space-y-6 max-w-sm mx-auto w-full">
+        <h1 class="text-4xl font-black italic text-green-700 uppercase">
+            Village<span class="text-orange-500">Express</span>
+        </h1>
+
+        <div id="signup-fields" class="hidden">
+            <input type="text" id="reg-name" placeholder="Full Name" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold mb-4">
+        </div>
+
+        <input type="tel" id="auth-phone" placeholder="Mobile Number" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">
+        <input type="password" id="auth-pass" placeholder="Password" class="w-full p-5 bg-slate-100 rounded-2xl outline-none font-bold">
+
+        <button onclick="handleAuth()" class="w-full bg-slate-900 text-white p-5 rounded-2xl font-black">Login</button>
+
+        <button onclick="toggleAuthMode()" id="toggle-link" class="text-sm font-bold text-slate-500">
+            New here? <span class="text-green-600">Create Account</span>
+        </button>
+    </div>
 </div>
 
-<!-- APP -->
+<!-- MAIN -->
 <div id="main-app" class="hidden">
 
-<header class="p-4 flex justify-between">
-<h2 id="display-name"></h2>
-<button onclick="handleLogout()">Logout</button>
+<header class="p-6 flex justify-between items-center">
+    <h2 id="display-name"></h2>
+    <button onclick="handleLogout()">Logout</button>
 </header>
 
-<main id="items-grid" class="grid grid-cols-2 gap-3 p-3"></main>
+<main id="items-grid" class="px-4 grid grid-cols-2 gap-4 mt-2"></main>
 
-<button onclick="showPage('orders')" class="fixed bottom-4 left-4 right-4 bg-black text-white p-4 rounded">Orders</button>
+<button onclick="showPage('orders')" class="fixed bottom-6 left-6 right-6 bg-black text-white p-4 rounded-2xl">
+    Orders
+</button>
 
-<div id="orders-page" class="fixed inset-0 bg-white hidden p-4 overflow-auto">
-<h2 class="text-xl mb-4">My Orders</h2>
-<div id="orders-history-list"></div>
+<div id="orders-page" class="fixed inset-0 bg-white hidden p-6 overflow-y-auto">
+    <h2 class="text-2xl font-bold mb-4">My Orders</h2>
+    <div id="orders-history-list"></div>
 </div>
 
 </div>
@@ -50,127 +67,157 @@ body { background:#F7F9FB; font-family:sans-serif;}
 <script>
 const RUPEE = "\u20B9";
 
-const firebaseConfig = { apiKey:"AIzaSyAVu8...", projectId:"village-quick-commerce-e27f6"};
+const firebaseConfig = {
+    apiKey: "AIzaSyAVu8iFrpYfMQvm5sMrT2ufxbpFHM9597A",
+    projectId: "village-quick-commerce-e27f6"
+};
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let currentUser = JSON.parse(localStorage.getItem('user_session'));
-let userLat=null,userLng=null,gps="";
-let lastCount=0;
+let currentUser = JSON.parse(localStorage.getItem('user_session')) || null;
+let isSignup = false;
 
-window.onload=()=>{ if(currentUser) showMain(); };
+let userLat = null, userLng = null;
+let lastOrderCount = 0;
 
-function handleAuth(){
-let phone=document.getElementById('auth-phone').value;
-let pass=document.getElementById('auth-pass').value;
+// 🔔 sound
+const notifySound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
-db.collection("users").where("phone","==",phone).where("pass","==",pass).get().then(s=>{
-if(!s.empty){
-localStorage.setItem('user_session',JSON.stringify(s.docs[0].data()));
-location.reload();
-}else alert("Invalid");
-});
+window.onload = () => {
+    if(currentUser) showMainApp();
+};
+
+// AUTH
+function toggleAuthMode(){
+    isSignup = !isSignup;
+    document.getElementById('signup-fields').classList.toggle('hidden', !isSignup);
+}
+
+async function handleAuth(){
+    const phone = auth-phone.value;
+    const pass = auth-pass.value;
+
+    if(isSignup){
+        const name = reg-name.value;
+        await db.collection("users").add({name, phone, pass});
+    }
+
+    const s = await db.collection("users")
+        .where("phone","==",phone)
+        .where("pass","==",pass)
+        .get();
+
+    if(!s.empty){
+        localStorage.setItem('user_session', JSON.stringify(s.docs[0].data()));
+        location.reload();
+    } else alert("Invalid Login");
 }
 
 function handleLogout(){
-localStorage.removeItem('user_session');
-location.reload();
+    localStorage.removeItem('user_session');
+    location.reload();
 }
 
-function showMain(){
-document.getElementById('auth-section').classList.add('hidden');
-document.getElementById('main-app').classList.remove('hidden');
-document.getElementById('display-name').innerText="Hi "+currentUser.name;
+// MAIN
+function showMainApp(){
+    auth-section.classList.add('hidden');
+    main-app.classList.remove('hidden');
+    display-name.innerText = "Hi, " + currentUser.name;
 }
 
+// NAV
 function showPage(p){
-document.getElementById('orders-page').classList.toggle('hidden',p!=='orders');
-if(p==='orders') loadOrders();
+    orders-page.classList.toggle('hidden', p !== 'orders');
+    if(p === 'orders') loadOrderHistory();
 }
 
-// 📍 GPS
+// GPS
 function getGPS(){
-navigator.geolocation.getCurrentPosition(p=>{
-userLat=p.coords.latitude;
-userLng=p.coords.longitude;
-gps=userLat+","+userLng;
-});
+    navigator.geolocation.getCurrentPosition(p=>{
+        userLat = p.coords.latitude;
+        userLng = p.coords.longitude;
+    });
 }
 
-// 📏 DISTANCE
-function dist(a,b,c,d){
-const R=6371;
-const dLat=(c-a)*Math.PI/180;
-const dLon=(d-b)*Math.PI/180;
-const x=Math.sin(dLat/2)**2+
-Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLon/2)**2;
-return R*(2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x)));
+// DISTANCE
+function calculateDistance(lat1, lon1, lat2, lon2){
+    const R = 6371;
+    const dLat = (lat2-lat1)*Math.PI/180;
+    const dLon = (lon2-lon1)*Math.PI/180;
+
+    const a =
+        Math.sin(dLat/2)**2 +
+        Math.cos(lat1*Math.PI/180) *
+        Math.cos(lat2*Math.PI/180) *
+        Math.sin(dLon/2)**2;
+
+    return R * (2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
-// ⏱ ETA
-function eta(km){ return Math.round((km/25)*60); }
-
-// 🔔 sound
-const sound=new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
-
-// 🧾 ORDERS
-function loadOrders(){
-const list=document.getElementById('orders-history-list');
-
-db.collection("orders")
-.where("customer.user_id","==",currentUser.phone)
-.onSnapshot(snap=>{
-
-if(snap.size>lastCount) sound.play();
-lastCount=snap.size;
-
-let html="";
-
-snap.docs
-.sort((a,b)=>(b.data().timestamp?.seconds||0)-(a.data().timestamp?.seconds||0))
-.forEach(doc=>{
-
-const d=doc.data();
-const active=d.status==="OUT FOR DELIVERY";
-let distance="",time="";
-
-if(d.riderLocation && userLat){
-const km=dist(userLat,userLng,d.riderLocation.lat,d.riderLocation.lng);
-distance=km.toFixed(2)+" KM";
-time=eta(km)+" mins";
+// ETA
+function calculateETA(d){
+    return Math.round((d/25)*60);
 }
 
-html+=`
-<div class="bg-white p-4 mb-4 rounded-xl shadow">
-<div class="flex justify-between">
-<div>
-<p>#${d.orderId}</p>
-<p>${d.status}</p>
-</div>
-<p>${RUPEE}${d.total}</p>
-</div>
+// ORDERS
+function loadOrderHistory(){
+    db.collection("orders")
+    .where("customer.user_id","==",currentUser.phone)
+    .onSnapshot(snap=>{
 
-${active && d.riderLocation?`
-<iframe width="100%" height="150"
-src="https://maps.google.com/maps?q=${d.riderLocation.lat},${d.riderLocation.lng}&z=15&output=embed"></iframe>
-`:''}
+        if(snap.size > lastOrderCount) notifySound.play();
+        lastOrderCount = snap.size;
 
-${distance?`
-<div class="flex justify-between text-xs mt-2">
-<span>${distance}</span>
-<span>${time}</span>
-</div>`:''}
+        let html = "";
 
-${active && d.riderPhone?`
-<a href="tel:${d.riderPhone}" class="block bg-green-500 text-white text-center mt-2 p-2 rounded">Call Rider</a>
-`:''}
+        snap.docs
+        .sort((a,b)=> (b.data().timestamp?.seconds||0)-(a.data().timestamp?.seconds||0))
+        .forEach(doc=>{
 
-</div>`;
-});
+            const d = doc.data();
+            const active = d.status === "OUT FOR DELIVERY";
 
-list.innerHTML=html;
+            let dist="", eta="";
 
-});
+            if(d.riderLocation && userLat){
+                const km = calculateDistance(userLat,userLng,d.riderLocation.lat,d.riderLocation.lng);
+                dist = km.toFixed(2)+" KM";
+                eta = calculateETA(km)+" mins";
+            }
+
+            html += `
+            <div class="bg-white p-4 mb-4 rounded-2xl shadow">
+
+                <div class="flex justify-between">
+                    <div>
+                        <p>#${d.orderId}</p>
+                        <p>${d.status}</p>
+                    </div>
+                    <p>${RUPEE}${d.total}</p>
+                </div>
+
+                ${active && d.riderLocation ? `
+                <iframe width="100%" height="150"
+                src="https://maps.google.com/maps?q=${d.riderLocation.lat},${d.riderLocation.lng}&z=15&output=embed"></iframe>
+                ` : ''}
+
+                ${dist ? `
+                <div class="flex justify-between text-xs mt-2">
+                    <span>${dist}</span>
+                    <span>${eta}</span>
+                </div>` : ''}
+
+                ${active && d.riderPhone ? `
+                <a href="tel:${d.riderPhone}" class="block bg-green-500 text-white text-center mt-2 p-2 rounded">
+                    Call Rider
+                </a>` : ''}
+
+            </div>`;
+        });
+
+        document.getElementById('orders-history-list').innerHTML = html;
+    });
 }
 </script>
 
